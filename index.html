@@ -11,8 +11,6 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font:18px/1.4 "Atkinson Hyperlegible",system-ui,sans-serif;color:var(--ink);display:flex;flex-direction:column;background:#dfe7e5}
-header{display:flex;gap:8px;padding:10px;background:var(--panel);box-shadow:0 1px 6px #0003;z-index:1000}
-header form{flex:1;display:flex;gap:8px}
 input,textarea{font:inherit;padding:12px;border:2px solid var(--line);border-radius:10px;width:100%;color:var(--ink)}
 input:focus,textarea:focus,button:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
 button{font:inherit;font-weight:700;min-height:54px;padding:0 18px;border:0;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer}
@@ -22,9 +20,6 @@ button.sec:hover{background:#d3dfdc}
 button.danger{background:#fbe9e7;color:var(--warn)}
 #wrap{position:relative;flex:1;min-height:0}
 #map{position:absolute;inset:0}
-#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;max-width:92%;text-align:center;display:none;box-shadow:0 3px 12px #0005}
-#bar{display:flex;gap:8px;padding:10px;background:var(--panel);box-shadow:0 -1px 6px #0003;flex-wrap:wrap;justify-content:center;z-index:1000}
-#bar button{flex:1 1 140px}
 #bar button.on{background:var(--route);color:#16282c}
 .pin{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px #0007)}
 .dot{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--route)}
@@ -44,7 +39,6 @@ button.danger{background:#fbe9e7;color:var(--warn)}
 .leaflet-popup-content h3{margin:0 0 4px;font-size:1.15rem}
 .big img{max-width:100%;max-height:85vh;border-radius:10px}
 .empty{color:#536b68;padding:8px 0}
-#legend{position:absolute;left:10px;top:10px;z-index:900;background:var(--panel);border-radius:12px;box-shadow:0 2px 10px #0004;width:230px;max-height:60%;overflow:auto;display:none}
 #legend h4{margin:0;padding:10px 12px;font-size:1rem;cursor:pointer;display:flex;justify-content:space-between;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line)}
 .lg{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;cursor:pointer;border-bottom:1px solid #eef2f1}
 .lg:hover{background:#f1f6f5}
@@ -54,18 +48,39 @@ button.danger{background:#fbe9e7;color:var(--warn)}
 #legend.min .lg{display:none}
 .lg button{min-height:34px;padding:0 10px;margin-left:auto;background:#e6eeec;color:var(--ink);font-size:.9rem}
 .handle{width:26px;height:26px;border-radius:50%;background:#fff;border:5px solid #16282c;box-shadow:0 1px 5px #0008;cursor:grab}
-#sum{display:none;gap:6px 22px;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:var(--ink);color:#fff;z-index:1000}
 #sum b{color:#ffb703}
-@media(max-width:560px){#legend{width:170px;font-size:15px;top:60px}}
+#panel{position:absolute;left:10px;top:10px;z-index:1000;width:240px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border-radius:14px;box-shadow:0 2px 12px #0005;padding:10px}
+#panel.off{display:none}
+#ph{display:flex;justify-content:space-between;align-items:center}
+#ph button{min-height:34px;padding:0 12px;font-size:14px}
+#tog{display:none;position:absolute;left:10px;top:10px;z-index:1000;min-height:44px;font-size:16px;padding:0 14px;box-shadow:0 2px 8px #0005}
+#panel.off+#tog{display:block}
+#search{display:flex;gap:6px;margin:8px 0}
+#search input{padding:8px 10px;font-size:15px;min-width:0}
+#search button{min-height:38px;padding:0 10px;font-size:14px}
+#bar{display:flex;flex-direction:column;gap:6px}
+#bar button{min-height:40px;font-size:15px;padding:0 12px;text-align:left}
+#legend{display:none;margin-top:10px;border-top:1px solid var(--line)}
+.lg>div{min-width:0;flex:1}
+#hint{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;max-width:min(92%,640px);text-align:center;display:none;box-shadow:0 3px 12px #0005;font-size:16px}
+#sum{display:none;gap:4px 22px;justify-content:center;flex-wrap:wrap;padding:5px 12px;font-size:15px;background:var(--ink);color:#fff;z-index:1000}
+@media(max-width:560px){#panel{width:200px}}
 </style>
 </head>
 <body>
-<header>
-  <form id="search"><input id="q" placeholder="Buscar un lugar (ej. Tarifa)" aria-label="Buscar un lugar"><button>Buscar</button></form>
-</header>
-<div id="wrap"><div id="map"></div><div id="legend"></div><div id="hint"></div></div>
+<div id="wrap">
+  <div id="map"></div>
+  <aside id="panel">
+    <div id="ph"><b>Menú</b><button class="sec" id="hide">Ocultar</button></div>
+    <form id="search"><input id="q" placeholder="Buscar lugar" aria-label="Buscar un lugar"><button>Buscar</button></form>
+    <nav id="bar"></nav>
+    <div id="legend"></div>
+  </aside>
+  <button id="tog">☰ Menú</button>
+  <div id="hint"></div>
+</div>
 <div id="sum"></div>
-<nav id="bar"></nav>
+<input type="file" id="fi" accept=".json,application/json" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script>
@@ -78,7 +93,15 @@ const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const $=id=>document.getElementById(id);
 
 // Mapa
-const map=L.map('map',{zoomControl:true}).setView([40.2,-3.7],6);
+const map=L.map('map',{zoomControl:false}).setView([40.2,-3.7],6);
+L.control.zoom({position:'bottomright'}).addTo(map);
+// Al encuadrar, deja libre la zona que tapa el menú
+const _fb=map.fitBounds.bind(map);
+map.fitBounds=(b,o={})=>{
+  const m=o.padding?o.padding[0]:40,v=o.padding?o.padding[1]:40;
+  const menu=!$('panel').classList.contains('off')&&innerWidth>=560;
+  return _fb(b,{maxZoom:o.maxZoom,paddingTopLeft:[menu?270:m,v],paddingBottomRight:[m,v]});
+};
 const sat=L.layerGroup([
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'Imagery © Esri'}),
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18})
@@ -90,6 +113,7 @@ let isSat=true;sat.addTo(map);
 let mode=null;
 function bar(){
   const b=$('bar');
+  if(mode)$('panel').classList.remove('off');
   if(mode==='route'){
     b.innerHTML='<button class="sec" id="undo">Deshacer último punto</button><button id="done">Terminar ruta</button><button class="danger" id="cancel">Cancelar</button>';
     $('undo').onclick=undoPoint;$('done').onclick=finishRoute;$('cancel').onclick=cancelMode;
@@ -99,8 +123,8 @@ function bar(){
   }else if(mode==='area'){
     b.innerHTML='<button class="danger" id="cancel">Cancelar</button>';$('cancel').onclick=cancelMode;
   }else{
-    b.innerHTML='<button id="nr">Nueva ruta</button><button id="na">Añadir área</button><button class="sec" id="list">Mis rutas y áreas</button><button class="sec" id="lay">'+(isSat?'Ver mapa':'Ver satélite')+'</button>';
-    $('nr').onclick=()=>startMode('route');$('na').onclick=()=>startMode('area');$('list').onclick=openList;$('lay').onclick=toggleLayer;
+    b.innerHTML='<button id="nr">Nueva ruta</button><button id="na">Añadir área</button><button class="sec" id="list">Mis rutas y áreas</button><button class="sec" id="lay">'+(isSat?'Ver mapa':'Ver satélite')+'</button><button class="sec" id="gr">Guardar rutas</button><button class="sec" id="cr">Cargar rutas</button>';
+    $('nr').onclick=()=>startMode('route');$('na').onclick=()=>startMode('area');$('list').onclick=openList;$('lay').onclick=toggleLayer;$('gr').onclick=exportData;$('cr').onclick=()=>$('fi').click();
   }
 }
 function hint(t){const h=$('hint');h.style.display=t?'block':'none';h.textContent=t||''}
@@ -265,6 +289,37 @@ function saveEdit(){
     });
 }
 
+// Guardar y cargar copia
+function exportData(){
+  if(!data.routes.length&&!data.areas.length){alert('Todavía no hay nada que guardar.');return}
+  const txt=JSON.stringify({app:'autocaravana',version:1,data},function(k,v){return k==='coords'&&this.segs?undefined:v});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));
+  a.download='mis-rutas-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+$('fi').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  let inc;
+  try{
+    const j=JSON.parse(await f.text());inc=j.data||j;
+    if(!Array.isArray(inc.routes)||!Array.isArray(inc.areas))throw 0;
+  }catch(err){alert('Este archivo no es una copia de rutas válida.');return}
+  inc.routes.forEach(r=>{if(r.segs&&!r.coords)r.coords=r.segs.flatMap(s=>s.c)});
+  modal(`<h2>Cargar rutas</h2><p>El archivo tiene <b>${inc.routes.length}</b> rutas y <b>${inc.areas.length}</b> áreas.</p>
+    <div class="row" style="flex-direction:column"><button id="add">Añadir a lo que ya tengo</button><button class="sec" id="rep">Sustituir todo lo que tengo</button><button class="sec" data-x>Cancelar</button></div>`,null,()=>{
+    const prev=JSON.stringify(data);
+    const fin=()=>{if(!save()){data=JSON.parse(prev);return}closeModal();draw();
+      const g=L.featureGroup(saved.getLayers());if(g.getBounds().isValid())map.fitBounds(g.getBounds(),{padding:[40,40]})};
+    $('add').onclick=()=>{
+      const rid=new Set(data.routes.map(r=>r.id)),aid=new Set(data.areas.map(a=>a.id));
+      inc.routes.filter(r=>!rid.has(r.id)).forEach(r=>data.routes.push(r));
+      inc.areas.filter(a=>!aid.has(a.id)).forEach(a=>data.areas.push(a));fin();
+    };
+    $('rep').onclick=()=>{if(confirm('Se borrará lo que tienes ahora y se pondrá lo del archivo. ¿Seguro?')){data={routes:inc.routes,areas:inc.areas};fin()}};
+  });
+};
+
 // Leyenda y resumen
 const fmt=s=>s?new Date(s+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}):'';
 const col=(r,i)=>r.color||colors[i%colors.length];
@@ -341,6 +396,9 @@ function modal(html,onOk,onOpen){
 }
 
 map.on('click',e=>{if(mode==='route')addPoint(e.latlng);else if(mode==='area')openAreaForm(e.latlng)});
+$('hide').onclick=()=>$('panel').classList.add('off');
+$('tog').onclick=()=>$('panel').classList.remove('off');
+if(innerWidth<560)$('panel').classList.add('off');
 draw();bar();
 if(data.routes.length||data.areas.length){
   const b=L.featureGroup(saved.getLayers());if(b.getBounds().isValid())map.fitBounds(b.getBounds(),{padding:[40,40]});
