@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi autocaravana</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{--ink:#16282c;--panel:#ffffff;--accent:#0d6b63;--accent-d:#094c47;--route:#ff7a1a;--warn:#b3261e;--line:#cfd8d6}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:18px/1.4 "Atkinson Hyperlegible",system-ui,sans-serif;color:var(--ink);display:flex;flex-direction:column;background:#dfe7e5}
+header{display:flex;gap:8px;padding:10px;background:var(--panel);box-shadow:0 1px 6px #0003;z-index:1000}
+header form{flex:1;display:flex;gap:8px}
+input,textarea{font:inherit;padding:12px;border:2px solid var(--line);border-radius:10px;width:100%;color:var(--ink)}
+input:focus,textarea:focus,button:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+button{font:inherit;font-weight:700;min-height:54px;padding:0 18px;border:0;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer}
+button:hover{background:var(--accent-d)}
+button.sec{background:#e6eeec;color:var(--ink)}
+button.sec:hover{background:#d3dfdc}
+button.danger{background:#fbe9e7;color:var(--warn)}
+#wrap{position:relative;flex:1;min-height:0}
+#map{position:absolute;inset:0}
+#hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;max-width:92%;text-align:center;display:none;box-shadow:0 3px 12px #0005}
+#bar{display:flex;gap:8px;padding:10px;background:var(--panel);box-shadow:0 -1px 6px #0003;flex-wrap:wrap;justify-content:center;z-index:1000}
+#bar button{flex:1 1 140px}
+#bar button.on{background:var(--route);color:#16282c}
+.pin{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px #0007)}
+.dot{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--route)}
+.overlay{position:fixed;inset:0;background:#000a;z-index:2000;display:flex;align-items:center;justify-content:center;padding:12px}
+.card{background:var(--panel);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:92vh;overflow:auto}
+.card h2{margin:0 0 12px;font-size:1.3rem}
+.card label{display:block;font-weight:700;margin:12px 0 4px}
+.row{display:flex;gap:8px;margin-top:16px}
+.row button{flex:1}
+.item{display:flex;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.item .t{flex:1}
+.item small{color:#536b68;display:block}
+.item button{min-height:44px;padding:0 12px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:84px;height:84px;object-fit:cover;border-radius:8px;cursor:pointer}
+.leaflet-popup-content{font:17px/1.4 "Atkinson Hyperlegible",system-ui,sans-serif;margin:14px 16px}
+.leaflet-popup-content h3{margin:0 0 4px;font-size:1.15rem}
+.big img{max-width:100%;max-height:85vh;border-radius:10px}
+.empty{color:#536b68;padding:8px 0}
+#legend{position:absolute;left:10px;top:10px;z-index:900;background:var(--panel);border-radius:12px;box-shadow:0 2px 10px #0004;width:230px;max-height:60%;overflow:auto;display:none}
+#legend h4{margin:0;padding:10px 12px;font-size:1rem;cursor:pointer;display:flex;justify-content:space-between;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line)}
+.lg{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;cursor:pointer;border-bottom:1px solid #eef2f1}
+.lg:hover{background:#f1f6f5}
+.lg i{flex:none;width:30px;height:7px;border-radius:4px;margin-top:8px}
+.lg b{display:block;line-height:1.2}
+.lg small{color:#536b68;display:block}
+#legend.min .lg{display:none}
+.lg button{min-height:34px;padding:0 10px;margin-left:auto;background:#e6eeec;color:var(--ink);font-size:.9rem}
+.handle{width:26px;height:26px;border-radius:50%;background:#fff;border:5px solid #16282c;box-shadow:0 1px 5px #0008;cursor:grab}
+#sum{display:none;gap:6px 22px;justify-content:center;flex-wrap:wrap;padding:9px 12px;background:var(--ink);color:#fff;z-index:1000}
+#sum b{color:#ffb703}
+@media(max-width:560px){#legend{width:170px;font-size:15px;top:60px}}
+</style>
+</head>
+<body>
+<header>
+  <form id="search"><input id="q" placeholder="Buscar un lugar (ej. Tarifa)" aria-label="Buscar un lugar"><button>Buscar</button></form>
+</header>
+<div id="wrap"><div id="map"></div><div id="legend"></div><div id="hint"></div></div>
+<div id="sum"></div>
+<nav id="bar"></nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const KEY='autocaravana-v1';
+let data={routes:[],areas:[]};
+try{data=JSON.parse(localStorage.getItem(KEY))||data}catch(e){}
+data.routes.forEach(r=>{if(r.segs&&!r.coords)r.coords=r.segs.flatMap(s=>s.c)});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data,function(k,v){return k==='coords'&&this.segs?undefined:v}));return true}catch(e){alert('No hay espacio para guardar más fotos. Prueba a borrar alguna.');return false}}
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+// Mapa
+const map=L.map('map',{zoomControl:true}).setView([40.2,-3.7],6);
+const sat=L.layerGroup([
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'Imagery © Esri'}),
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18})
+]);
+const plain=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+let isSat=true;sat.addTo(map);
+
+// Barra de botones
+let mode=null;
+function bar(){
+  const b=$('bar');
+  if(mode==='route'){
+    b.innerHTML='<button class="sec" id="undo">Deshacer último punto</button><button id="done">Terminar ruta</button><button class="danger" id="cancel">Cancelar</button>';
+    $('undo').onclick=undoPoint;$('done').onclick=finishRoute;$('cancel').onclick=cancelMode;
+  }else if(mode==='edit'){
+    b.innerHTML='<button id="sv">Guardar cambios</button><button class="danger" id="cancel">Cancelar</button>';
+    $('sv').onclick=saveEdit;$('cancel').onclick=cancelMode;
+  }else if(mode==='area'){
+    b.innerHTML='<button class="danger" id="cancel">Cancelar</button>';$('cancel').onclick=cancelMode;
+  }else{
+    b.innerHTML='<button id="nr">Nueva ruta</button><button id="na">Añadir área</button><button class="sec" id="list">Mis rutas y áreas</button><button class="sec" id="lay">'+(isSat?'Ver mapa':'Ver satélite')+'</button>';
+    $('nr').onclick=()=>startMode('route');$('na').onclick=()=>startMode('area');$('list').onclick=openList;$('lay').onclick=toggleLayer;
+  }
+}
+function hint(t){const h=$('hint');h.style.display=t?'block':'none';h.textContent=t||''}
+function startMode(m){mode=m;bar();hint(m==='route'?'Toca el mapa para marcar el recorrido. Cada toque añade un punto por carretera.':'Toca el mapa donde estuvo el área.')}
+function cancelMode(){mode=null;clearDraft();clearEdit();hint('');bar();draw()}
+function toggleLayer(){if(isSat){map.removeLayer(sat);plain.addTo(map)}else{map.removeLayer(plain);sat.addTo(map)}isSat=!isSat;bar()}
+
+// Buscar
+$('search').onsubmit=async e=>{
+  e.preventDefault();const q=$('q').value.trim();if(!q)return;
+  try{
+    const r=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
+    if(!r.length){alert('No encuentro ese lugar. Prueba con otro nombre.');return}
+    map.setView([+r[0].lat,+r[0].lon],13);
+  }catch(err){alert('No se pudo buscar. Comprueba que tienes internet.')}
+};
+
+// Crear ruta
+let pts=[],segs=[],draftGroup=L.layerGroup().addTo(map),draftLine=null,busy=false;
+function clearDraft(){pts=[];segs=[];draftGroup.clearLayers();draftLine=null}
+function km(){return segs.reduce((s,x)=>s+x.d,0)/1000}
+function redraw(){
+  draftGroup.clearLayers();
+  const all=segs.flatMap(s=>s.c);
+  if(all.length)L.polyline(all,{color:'#ff7a1a',weight:6,opacity:.95}).addTo(draftGroup);
+  pts.forEach((p,i)=>L.marker(p,{icon:L.divIcon({className:'',html:'<div class="dot"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false}).addTo(draftGroup));
+  hint(pts.length<2?'Toca el mapa para marcar el siguiente punto.':'Llevas '+km().toFixed(1)+' km. Sigue tocando o pulsa «Terminar ruta».');
+}
+async function addPoint(ll){
+  if(busy)return;
+  const p=[ll.lat,ll.lng];
+  if(!pts.length){pts.push(p);redraw();return}
+  busy=true;const a=pts[pts.length-1];let seg;
+  try{
+    const u=`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${p[1]},${p[0]}?overview=full&geometries=geojson`;
+    const j=await (await fetch(u)).json();
+    const r=j.routes[0];seg={c:r.geometry.coordinates.map(x=>[x[1],x[0]]),d:r.distance};
+  }catch(e){
+    seg={c:[a,p],d:map.distance(a,p)};
+    hint('Sin conexión con el callejero: he trazado una línea recta.');
+  }
+  segs.push(seg);pts.push(p);busy=false;redraw();
+}
+function undoPoint(){if(pts.length>1){pts.pop();segs.pop()}else{pts=[]}redraw()}
+function finishRoute(){
+  if(segs.length<1){alert('Marca al menos dos puntos en el mapa.');return}
+  const hoy=new Date();const d=hoy.toISOString().slice(0,10);
+  modal(`<h2>Guardar ruta</h2><p>${km().toFixed(1)} km</p>
+    <label for="n">Nombre</label><input id="n" value="Ruta del ${hoy.toLocaleDateString('es-ES')}">
+    <label for="d">Día que empecé</label><input id="d" type="date" value="${d}">
+    <label for="e">Día que terminé</label><input id="e" type="date" value="${d}">
+    <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
+    ()=>{
+      let ini=$('d').value,fin=$('e').value||ini;if(fin<ini)fin=ini;
+      data.routes.push({id:Date.now(),name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,color:colors[data.routes.length%colors.length],km:km(),pts:pts.slice(),segs:segs.slice(),coords:segs.flatMap(s=>s.c)});
+      if(!save())return false;mode=null;clearDraft();hint('');bar();draw();
+    });
+}
+
+// Áreas
+function openAreaForm(ll){
+  let photos=[];
+  modal(`<h2>Nueva área</h2>
+    <label for="n">Nombre del área</label><input id="n" placeholder="Ej. Área de Zahara de los Atunes">
+    <label for="d">Fecha</label><input id="d" type="date" value="${new Date().toISOString().slice(0,10)}">
+    <label for="t">Notas</label><textarea id="t" rows="3" placeholder="Precio, servicios, qué tal fue…"></textarea>
+    <label for="f">Fotos</label><input id="f" type="file" accept="image/*" multiple>
+    <div class="thumbs" id="th"></div>
+    <div class="row"><button class="sec" data-x>Cancelar</button><button id="ok">Guardar área</button></div>`,
+    ()=>{
+      data.areas.push({id:Date.now(),name:$('n').value.trim()||'Área sin nombre',date:$('d').value,notes:$('t').value.trim(),lat:ll.lat,lng:ll.lng,photos});
+      if(!save()){data.areas.pop();return false}
+      mode=null;hint('');bar();draw();
+    },
+    ()=>{$('f').onchange=async e=>{
+      for(const f of e.target.files){try{photos.push(await shrink(f))}catch(err){}}
+      $('th').innerHTML=photos.map(p=>`<img src="${p}" alt="">`).join('');
+    }});
+}
+async function shrink(file){
+  const bmp=await createImageBitmap(file);const s=Math.min(1,700/Math.max(bmp.width,bmp.height));
+  const c=document.createElement('canvas');c.width=bmp.width*s;c.height=bmp.height*s;
+  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.65);
+}
+
+// Editar una ruta guardada
+let ed=null,edBusy=false;const editGroup=L.layerGroup().addTo(map);
+async function routeBetween(a,b){
+  try{
+    const j=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`)).json();
+    const r=j.routes[0];return{c:r.geometry.coordinates.map(x=>[x[1],x[0]]),d:r.distance};
+  }catch(e){return{c:[a,b],d:map.distance(a,b)}}
+}
+function clearEdit(){ed=null;editGroup.clearLayers()}
+function startEdit(id){
+  const r=data.routes.find(x=>x.id==id);if(!r)return;
+  if(!r.color)r.color=colors[data.routes.indexOf(r)%colors.length];
+  let P,S;
+  if(r.pts&&r.segs){P=r.pts.map(p=>p.slice());S=r.segs.map(s=>({c:s.c,d:s.d}))}
+  else{
+    const n=r.coords.length,k=Math.min(8,n-1),idx=[];
+    for(let i=0;i<=k;i++)idx.push(Math.round(i*(n-1)/k));
+    P=idx.map(i=>r.coords[i]);S=[];
+    for(let i=0;i<k;i++){const c=r.coords.slice(idx[i],idx[i+1]+1);let d=0;for(let j=1;j<c.length;j++)d+=map.distance(c[j-1],c[j]);S.push({c,d})}
+  }
+  closeModal();map.closePopup();clearDraft();
+  ed={r,pts:P,segs:S};mode='edit';bar();draw();drawEdit();
+  map.fitBounds(L.latLngBounds(r.coords),{padding:[70,70]});
+}
+function drawEdit(){
+  editGroup.clearLayers();if(!ed)return;
+  const color=ed.r.color;
+  ed.segs.forEach((s,i)=>L.polyline(s.c,{color,weight:9,opacity:.95}).addTo(editGroup)
+    .on('click',e=>{L.DomEvent.stopPropagation(e);insertPoint(i,e.latlng)}));
+  ed.pts.forEach((p,i)=>{
+    const m=L.marker(p,{draggable:true,icon:L.divIcon({className:'',html:'<div class="handle"></div>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(editGroup);
+    m.on('dragend',()=>movePoint(i,m.getLatLng()));
+    m.on('click',()=>{
+      if(ed.pts.length<=2){m.bindPopup('Una ruta necesita al menos dos puntos.').openPopup();return}
+      const b=document.createElement('button');b.textContent='Quitar este punto';
+      b.onclick=()=>{map.closePopup();removePoint(i)};
+      m.bindPopup(b).openPopup();
+    });
+  });
+  const k=ed.segs.reduce((a,s)=>a+s.d,0)/1000;
+  hint('Editando «'+ed.r.name+'» · '+k.toFixed(1)+' km. Arrastra un punto blanco para corregir. Toca la línea para añadir un punto. Toca un punto para quitarlo.');
+}
+async function movePoint(i,ll){
+  if(edBusy){drawEdit();return}
+  edBusy=true;hint('Calculando…');ed.pts[i]=[ll.lat,ll.lng];
+  if(i>0)ed.segs[i-1]=await routeBetween(ed.pts[i-1],ed.pts[i]);
+  if(i<ed.pts.length-1)ed.segs[i]=await routeBetween(ed.pts[i],ed.pts[i+1]);
+  edBusy=false;drawEdit();
+}
+async function insertPoint(i,ll){
+  if(edBusy)return;edBusy=true;hint('Calculando…');
+  const p=[ll.lat,ll.lng];
+  const s1=await routeBetween(ed.pts[i],p),s2=await routeBetween(p,ed.pts[i+1]);
+  ed.pts.splice(i+1,0,p);ed.segs.splice(i,1,s1,s2);edBusy=false;drawEdit();
+}
+async function removePoint(i){
+  if(edBusy)return;edBusy=true;hint('Calculando…');
+  const n=ed.pts.length;ed.pts.splice(i,1);
+  if(i===0)ed.segs.splice(0,1);
+  else if(i===n-1)ed.segs.splice(n-2,1);
+  else{const s=await routeBetween(ed.pts[i-1],ed.pts[i]);ed.segs.splice(i-1,2,s)}
+  edBusy=false;drawEdit();
+}
+function saveEdit(){
+  if(edBusy)return;
+  const r=ed.r,k=ed.segs.reduce((a,s)=>a+s.d,0)/1000;
+  modal(`<h2>Guardar cambios</h2><p>${k.toFixed(1)} km</p>
+    <label for="n">Nombre</label><input id="n" value="${esc(r.name)}">
+    <label for="d">Día que empecé</label><input id="d" type="date" value="${r.date||''}">
+    <label for="e">Día que terminé</label><input id="e" type="date" value="${r.end||r.date||''}">
+    <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
+    ()=>{
+      const ini=$('d').value;let fin=$('e').value||ini;if(fin<ini)fin=ini;
+      Object.assign(r,{name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,km:k,pts:ed.pts,segs:ed.segs,coords:ed.segs.flatMap(s=>s.c)});
+      if(!save())return false;
+      mode=null;clearEdit();hint('');bar();draw();
+    });
+}
+
+// Leyenda y resumen
+const fmt=s=>s?new Date(s+'T12:00:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}):'';
+const col=(r,i)=>r.color||colors[i%colors.length];
+const rango=r=>{const f=r.end||r.date;return f&&f!==r.date?fmt(r.date)+' → '+fmt(f):fmt(r.date)};
+function legend(){
+  const L_=$('legend'),S=$('sum');
+  if(!data.routes.length){L_.style.display='none';S.style.display='none';return}
+  const min=L_.classList.contains('min');
+  L_.style.display='block';
+  L_.innerHTML='<h4 id="lgh">Mis rutas <span>'+(min?'▼':'▲')+'</span></h4>'+data.routes.map((r,i)=>`<div class="lg" data-r="${r.id}"><i style="background:${col(r,i)}"></i><div><b>${esc(r.name)}</b><small>${rango(r)}</small><small>${r.km.toFixed(1)} km</small></div><button data-edit="${r.id}">Editar</button></div>`).join('');
+  $('lgh').onclick=()=>{L_.classList.toggle('min');legend()};
+  L_.querySelectorAll('.lg').forEach(el=>el.onclick=ev=>{if(ev.target.closest('[data-edit]'))return;const r=data.routes.find(x=>x.id==el.dataset.r);map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]})});
+  const ini=data.routes.map(r=>r.date).filter(Boolean).sort()[0];
+  const fin=data.routes.map(r=>r.end||r.date).filter(Boolean).sort().pop();
+  const tot=data.routes.reduce((a,r)=>a+r.km,0);
+  S.style.display='flex';
+  S.innerHTML=`<span>Empecé el <b>${fmt(ini)||'—'}</b></span><span>Terminé el <b>${fmt(fin)||'—'}</b></span><span>Total: <b>${tot.toFixed(1)} km</b></span>`;
+}
+
+// Dibujar lo guardado
+const saved=L.layerGroup().addTo(map);
+const colors=['#ff7a1a','#e63946','#ffd60a','#4cc9f0','#b5179e','#80ed99'];
+function draw(){
+  saved.clearLayers();
+  data.routes.forEach((r,i)=>{
+    if(ed&&ed.r===r)return;
+    L.polyline(r.coords,{color:col(r,i),weight:5,opacity:.9}).addTo(saved)
+      .bindPopup(`<h3>${esc(r.name)}</h3>${rango(r)} · ${r.km.toFixed(1)} km<div class="row"><button data-edit="${r.id}">Editar ruta</button></div>`);
+  });
+  legend();
+  data.areas.forEach(a=>{
+    L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})}).addTo(saved)
+      .bindPopup(`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>`);
+  });
+}
+document.addEventListener('click',e=>{
+  const eb=e.target.closest('[data-edit]');
+  if(eb){startEdit(eb.dataset.edit);return}
+  const im=e.target.closest('.thumbs img[data-a]');
+  if(im){const a=data.areas.find(x=>x.id==im.dataset.a);modal(`<div class="big"><img src="${a.photos[im.dataset.i]}" alt=""></div><div class="row"><button data-x>Cerrar</button></div>`)}
+});
+
+// Lista
+function openList(){
+  const fecha=s=>s?new Date(s).toLocaleDateString('es-ES'):'';
+  const rs=data.routes.map(r=>`<div class="item"><div class="t"><b>${esc(r.name)}</b><small>${rango(r)} · ${r.km.toFixed(1)} km</small></div><button data-v="r${r.id}">Ver</button><button class="sec" data-edit="${r.id}">Editar</button><button class="danger" data-b="r${r.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay rutas. Pulsa «Nueva ruta».</p>';
+  const as=data.areas.map(a=>`<div class="item"><div class="t"><b>${esc(a.name)}</b><small>${fecha(a.date)}${a.photos.length?' · '+a.photos.length+' fotos':''}</small></div><button data-v="a${a.id}">Ver</button><button class="danger" data-b="a${a.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay áreas. Pulsa «Añadir área».</p>';
+  modal(`<h2>Mis rutas</h2>${rs}<h2 style="margin-top:20px">Mis áreas</h2>${as}<div class="row"><button data-x>Cerrar</button></div>`,null,()=>{
+    document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
+      const k=b.dataset.v,id=k.slice(1);closeModal();
+      if(k[0]==='r'){const r=data.routes.find(x=>x.id==id);map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]})}
+      else{const a=data.areas.find(x=>x.id==id);map.setView([a.lat,a.lng],15)}
+    });
+    document.querySelectorAll('[data-b]').forEach(b=>b.onclick=()=>{
+      if(!confirm('¿Seguro que quieres borrarlo?'))return;
+      const k=b.dataset.b,id=k.slice(1);
+      if(k[0]==='r')data.routes=data.routes.filter(x=>x.id!=id);else data.areas=data.areas.filter(x=>x.id!=id);
+      save();draw();closeModal();openList();
+    });
+  });
+}
+
+// Ventana emergente
+let ov=null;
+function closeModal(){if(ov){ov.remove();ov=null}}
+function modal(html,onOk,onOpen){
+  closeModal();ov=document.createElement('div');ov.className='overlay';
+  ov.innerHTML='<div class="card">'+html+'</div>';document.body.appendChild(ov);
+  ov.querySelectorAll('[data-x]').forEach(b=>b.onclick=closeModal);
+  const ok=ov.querySelector('#ok');
+  if(ok&&onOk)ok.onclick=()=>{if(onOk()!==false)closeModal()};
+  if(onOpen)onOpen();
+  const f=ov.querySelector('input,textarea');if(f&&!f.type.match(/file|date/))f.focus();
+}
+
+map.on('click',e=>{if(mode==='route')addPoint(e.latlng);else if(mode==='area')openAreaForm(e.latlng)});
+draw();bar();
+if(data.routes.length||data.areas.length){
+  const b=L.featureGroup(saved.getLayers());if(b.getBounds().isValid())map.fitBounds(b.getBounds(),{padding:[40,40]});
+}
+</script>
+</body>
+</html>
