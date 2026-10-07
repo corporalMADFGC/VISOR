@@ -39,44 +39,56 @@ button.danger{background:#fbe9e7;color:var(--warn)}
 .leaflet-popup-content h3{margin:0 0 4px;font-size:1.15rem}
 .big img{max-width:100%;max-height:85vh;border-radius:10px}
 .empty{color:#536b68;padding:8px 0}
-#legend h4{margin:0;padding:10px 12px;font-size:1rem;cursor:pointer;display:flex;justify-content:space-between;position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line)}
 .lg{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;cursor:pointer;border-bottom:1px solid #eef2f1}
 .lg:hover{background:#f1f6f5}
 .lg i{flex:none;width:30px;height:7px;border-radius:4px;margin-top:8px}
 .lg b{display:block;line-height:1.2}
 .lg small{color:#536b68;display:block}
-#legend.min .lg{display:none}
 .lg button{min-height:34px;padding:0 10px;margin-left:auto;background:#e6eeec;color:var(--ink);font-size:.9rem}
 .handle{width:26px;height:26px;border-radius:50%;background:#fff;border:5px solid #16282c;box-shadow:0 1px 5px #0008;cursor:grab}
 #sum b{color:#ffb703}
-#panel{position:absolute;left:10px;top:10px;z-index:1000;width:240px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border-radius:14px;box-shadow:0 2px 12px #0005;padding:10px}
-#panel.off{display:none}
-#ph{display:flex;justify-content:space-between;align-items:center}
-#ph button{min-height:34px;padding:0 12px;font-size:14px}
-#tog{display:none;position:absolute;left:10px;top:10px;z-index:1000;min-height:44px;font-size:16px;padding:0 14px;box-shadow:0 2px 8px #0005}
-#panel.off+#tog{display:block}
-#search{display:flex;gap:6px;margin:8px 0}
+#search{display:flex;gap:6px;margin:0 0 8px}
 #search input{padding:8px 10px;font-size:15px;min-width:0}
 #search button{min-height:38px;padding:0 10px;font-size:14px}
 #bar{display:flex;flex-direction:column;gap:6px}
 #bar button{min-height:40px;font-size:15px;padding:0 12px;text-align:left}
-#legend{display:none;margin-top:10px;border-top:1px solid var(--line)}
 .lg>div{min-width:0;flex:1}
 #hint{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);z-index:1000;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;max-width:min(92%,640px);text-align:center;display:none;box-shadow:0 3px 12px #0005;font-size:16px}
 #sum{display:none;gap:4px 22px;justify-content:center;flex-wrap:wrap;padding:5px 12px;font-size:15px;background:var(--ink);color:#fff;z-index:1000}
-@media(max-width:560px){#panel{width:200px}}
+#side{position:absolute;left:10px;top:10px;z-index:1000;width:240px;max-height:calc(100% - 20px);overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:0 10px 10px 0;scrollbar-width:thin}
+#tabs{display:flex;gap:8px;flex:none}
+#tabs button{min-height:44px;font-size:15px;padding:0 10px;white-space:nowrap;flex:1;box-shadow:0 2px 8px #0005}
+#panel,#legend{flex:none;background:var(--panel);border-radius:14px;box-shadow:0 2px 12px #0005}
+#panel{padding:10px}
+#legend{padding:4px 6px 6px}
+#panel.off,#legend.off{display:none}
+#legend h4{margin:0;padding:8px 6px 6px;font-size:1rem}
+@media(max-width:560px){#side{width:210px}}
+.dot{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--route);font:700 12px/18px sans-serif;text-align:center;color:#16282c}
+.st{margin:6px 0 2px;padding-left:20px;font-size:.9rem}.st span{color:#536b68}
+.leaflet-popup-content .row{margin-top:10px;flex-direction:column}
+#legend .lg b{font-size:1.02rem}
+.tl{margin:8px 0 4px}
+.tl-stop{display:flex;gap:12px;align-items:flex-start}
+.tl-dot{flex:none;width:30px;height:30px;border-radius:50%;border:4px solid;background:#fff;font:700 14px/22px sans-serif;text-align:center}
+.tl-stop b{display:block;font-size:1.05rem;line-height:1.2;margin-top:2px}
+.tl-stop small{color:#536b68;display:block}
+.tl-leg{margin:2px 0 2px 13px;padding:8px 0 8px 24px;border-left:4px solid;font-weight:700;font-size:.95rem}
+.tl-sum{margin:0 0 10px;color:#536b68}.tl-sum b{color:var(--ink)}
+.sw{display:inline-block;width:28px;height:8px;border-radius:4px;margin-right:10px;vertical-align:middle}
 </style>
 </head>
 <body>
 <div id="wrap">
   <div id="map"></div>
-  <aside id="panel">
-    <div id="ph"><b>Menú</b><button class="sec" id="hide">Ocultar</button></div>
-    <form id="search"><input id="q" placeholder="Buscar lugar" aria-label="Buscar un lugar"><button>Buscar</button></form>
-    <nav id="bar"></nav>
-    <div id="legend"></div>
-  </aside>
-  <button id="tog">☰ Menú</button>
+  <div id="side">
+    <div id="tabs"><button id="tm">☰ Menú ▾</button><button id="tr" hidden>Mis rutas ▾</button></div>
+    <aside id="panel">
+      <form id="search"><input id="q" placeholder="Buscar lugar" aria-label="Buscar lugar"><button>Buscar</button></form>
+      <nav id="bar"></nav>
+    </aside>
+    <div id="legend" hidden></div>
+  </div>
   <div id="hint"></div>
 </div>
 <div id="sum"></div>
@@ -91,6 +103,8 @@ data.routes.forEach(r=>{if(r.segs&&!r.coords)r.coords=r.segs.flatMap(s=>s.c)});
 function save(){try{localStorage.setItem(KEY,JSON.stringify(data,function(k,v){return k==='coords'&&this.segs?undefined:v}));return true}catch(e){alert('No hay espacio para guardar más fotos. Prueba a borrar alguna.');return false}}
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=id=>document.getElementById(id);
+const hm=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min'};
+const secs=a=>a.reduce((x,s)=>x+(s.t??s.d/22),0);
 
 // Mapa
 const map=L.map('map',{zoomControl:false}).setView([40.2,-3.7],6);
@@ -99,7 +113,7 @@ L.control.zoom({position:'bottomright'}).addTo(map);
 const _fb=map.fitBounds.bind(map);
 map.fitBounds=(b,o={})=>{
   const m=o.padding?o.padding[0]:40,v=o.padding?o.padding[1]:40;
-  const menu=!$('panel').classList.contains('off')&&innerWidth>=560;
+  const menu=(!$('panel').classList.contains('off')||(data.routes.length&&!$('legend').classList.contains('off')))&&innerWidth>=560;
   return _fb(b,{maxZoom:o.maxZoom,paddingTopLeft:[menu?270:m,v],paddingBottomRight:[m,v]});
 };
 const sat=L.layerGroup([
@@ -110,10 +124,11 @@ const plain=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoo
 let isSat=true;sat.addTo(map);
 
 // Barra de botones
-let mode=null;
+let mode=null,selId=null;
 function bar(){
   const b=$('bar');
   if(mode)$('panel').classList.remove('off');
+  syncTabs();
   if(mode==='route'){
     b.innerHTML='<button class="sec" id="undo">Deshacer último punto</button><button id="done">Terminar ruta</button><button class="danger" id="cancel">Cancelar</button>';
     $('undo').onclick=undoPoint;$('done').onclick=finishRoute;$('cancel').onclick=cancelMode;
@@ -128,7 +143,7 @@ function bar(){
   }
 }
 function hint(t){const h=$('hint');h.style.display=t?'block':'none';h.textContent=t||''}
-function startMode(m){mode=m;bar();hint(m==='route'?'Toca el mapa para marcar el recorrido. Cada toque añade un punto por carretera.':'Toca el mapa donde estuvo el área.')}
+function startMode(m){mode=m;bar();hint(m==='route'?'Toca el mapa para añadir cada parada de la ruta.':'Toca el mapa donde estuvo el área.')}
 function cancelMode(){mode=null;clearDraft();clearEdit();hint('');bar();draw()}
 function toggleLayer(){if(isSat){map.removeLayer(sat);plain.addTo(map)}else{map.removeLayer(plain);sat.addTo(map)}isSat=!isSat;bar()}
 
@@ -143,52 +158,53 @@ $('search').onsubmit=async e=>{
 };
 
 // Crear ruta
-let pts=[],segs=[],draftGroup=L.layerGroup().addTo(map),draftLine=null,busy=false;
-function clearDraft(){pts=[];segs=[];draftGroup.clearLayers();draftLine=null}
+let pts=[],segs=[],stops=[],draftGroup=L.layerGroup().addTo(map),draftLine=null,busy=false;
+function clearDraft(){pts=[];segs=[];stops=[];draftGroup.clearLayers();draftLine=null}
 function km(){return segs.reduce((s,x)=>s+x.d,0)/1000}
 function redraw(){
   draftGroup.clearLayers();
   const all=segs.flatMap(s=>s.c);
   if(all.length)L.polyline(all,{color:'#ff7a1a',weight:6,opacity:.95}).addTo(draftGroup);
-  pts.forEach((p,i)=>L.marker(p,{icon:L.divIcon({className:'',html:'<div class="dot"></div>',iconSize:[14,14],iconAnchor:[7,7]}),interactive:false}).addTo(draftGroup));
-  hint(pts.length<2?'Toca el mapa para marcar el siguiente punto.':'Llevas '+km().toFixed(1)+' km. Sigue tocando o pulsa «Terminar ruta».');
+  pts.forEach((p,i)=>L.marker(p,{icon:L.divIcon({className:'',html:'<div class="dot">'+(i+1)+'</div>',iconSize:[24,24],iconAnchor:[12,12]}),interactive:false}).addTo(draftGroup));
+  hint(pts.length<2?'Toca el mapa para añadir la siguiente parada.':'Llevas '+km().toFixed(1)+' km · '+hm(secs(segs))+'. Sigue añadiendo paradas o pulsa «Terminar ruta».');
 }
-async function addPoint(ll){
+function pickStop(info){
+  const last=[...stops].reverse().find(s=>s.hasta)?.hasta||new Date().toISOString().slice(0,10);
+  const go=h=>addPoint({...info,name:$('pn').value.trim()||info.name},h);
+  modal(`<h2>Nueva parada</h2><label for="pn">Nombre</label><input id="pn" value="${esc(info.name)}">
+    <label for="h">¿Hasta cuándo te quedas aquí?</label><input id="h" type="date" value="${last}">
+    <div class="row" style="flex-direction:column"><button id="ok">Aceptar</button><button class="sec" id="np">Solo paso por aquí</button><button class="sec" data-x>Cancelar</button></div>`,
+    ()=>go($('h').value),()=>{$('np').onclick=()=>{go('');closeModal()}});
+}
+async function addPoint(info,hasta){
   if(busy)return;
-  const p=[ll.lat,ll.lng];
-  if(!pts.length){pts.push(p);redraw();return}
-  busy=true;const a=pts[pts.length-1];let seg;
-  try{
-    const u=`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${p[1]},${p[0]}?overview=full&geometries=geojson`;
-    const j=await (await fetch(u)).json();
-    const r=j.routes[0];seg={c:r.geometry.coordinates.map(x=>[x[1],x[0]]),d:r.distance};
-  }catch(e){
-    seg={c:[a,p],d:map.distance(a,p)};
-    hint('Sin conexión con el callejero: he trazado una línea recta.');
-  }
-  segs.push(seg);pts.push(p);busy=false;redraw();
+  const p=[info.lat,info.lng],st={name:info.name,type:info.type,hasta:hasta||''};
+  if(!pts.length){pts.push(p);stops.push(st);redraw();return}
+  busy=true;hint('Calculando…');
+  const seg=await routeBetween(pts[pts.length-1],p);
+  segs.push(seg);pts.push(p);stops.push(st);busy=false;redraw();
 }
-function undoPoint(){if(pts.length>1){pts.pop();segs.pop()}else{pts=[]}redraw()}
+function undoPoint(){if(pts.length>1){pts.pop();segs.pop();stops.pop()}else{pts=[];stops=[]}redraw()}
 function finishRoute(){
   if(segs.length<1){alert('Marca al menos dos puntos en el mapa.');return}
-  const hoy=new Date();const d=hoy.toISOString().slice(0,10);
-  modal(`<h2>Guardar ruta</h2><p>${km().toFixed(1)} km</p>
+  const hoy=new Date();const d=hoy.toISOString().slice(0,10);const d0=stops.find(s=>s.hasta)?.hasta||d,d1=[...stops].reverse().find(s=>s.hasta)?.hasta||d0;
+  modal(`<h2>Guardar ruta</h2><p>${km().toFixed(1)} km · ${hm(secs(segs))} conduciendo<br><small>Tiempo estimado en coche; en autocaravana suele ser algo más.</small></p>
     <label for="n">Nombre</label><input id="n" value="Ruta del ${hoy.toLocaleDateString('es-ES')}">
-    <label for="d">Día que empecé</label><input id="d" type="date" value="${d}">
-    <label for="e">Día que terminé</label><input id="e" type="date" value="${d}">
+    <label for="d">Día que empecé</label><input id="d" type="date" value="${d0}">
+    <label for="e">Día que terminé</label><input id="e" type="date" value="${d1}">
     <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
     ()=>{
       let ini=$('d').value,fin=$('e').value||ini;if(fin<ini)fin=ini;
-      data.routes.push({id:Date.now(),name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,color:colors[data.routes.length%colors.length],km:km(),pts:pts.slice(),segs:segs.slice(),coords:segs.flatMap(s=>s.c)});
+      data.routes.push({id:Date.now(),name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,color:colors[data.routes.length%colors.length],km:km(),pts:pts.slice(),segs:segs.slice(),stops:stops.slice(),t:secs(segs),coords:segs.flatMap(s=>s.c)});
       if(!save())return false;mode=null;clearDraft();hint('');bar();draw();
     });
 }
 
 // Áreas
-function openAreaForm(ll){
+function openAreaForm(ll,nombre){
   let photos=[];
   modal(`<h2>Nueva área</h2>
-    <label for="n">Nombre del área</label><input id="n" placeholder="Ej. Área de Zahara de los Atunes">
+    <label for="n">Nombre del área</label><input id="n" placeholder="Ej. Área de Zahara de los Atunes" value="${esc(nombre||'')}">
     <label for="d">Fecha</label><input id="d" type="date" value="${new Date().toISOString().slice(0,10)}">
     <label for="t">Notas</label><textarea id="t" rows="3" placeholder="Precio, servicios, qué tal fue…"></textarea>
     <label for="f">Fotos</label><input id="f" type="file" accept="image/*" multiple>
@@ -215,15 +231,15 @@ let ed=null,edBusy=false;const editGroup=L.layerGroup().addTo(map);
 async function routeBetween(a,b){
   try{
     const j=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`)).json();
-    const r=j.routes[0];return{c:r.geometry.coordinates.map(x=>[x[1],x[0]]),d:r.distance};
-  }catch(e){return{c:[a,b],d:map.distance(a,b)}}
+    const r=j.routes[0];return{c:r.geometry.coordinates.map(x=>[x[1],x[0]]),d:r.distance,t:r.duration};
+  }catch(e){return{c:[a,b],d:map.distance(a,b),t:map.distance(a,b)/22}}
 }
 function clearEdit(){ed=null;editGroup.clearLayers()}
 function startEdit(id){
   const r=data.routes.find(x=>x.id==id);if(!r)return;
   if(!r.color)r.color=colors[data.routes.indexOf(r)%colors.length];
   let P,S;
-  if(r.pts&&r.segs){P=r.pts.map(p=>p.slice());S=r.segs.map(s=>({c:s.c,d:s.d}))}
+  if(r.pts&&r.segs){P=r.pts.map(p=>p.slice());S=r.segs.map(s=>({c:s.c,d:s.d,t:s.t}))}
   else{
     const n=r.coords.length,k=Math.min(8,n-1),idx=[];
     for(let i=0;i<=k;i++)idx.push(Math.round(i*(n-1)/k));
@@ -231,7 +247,7 @@ function startEdit(id){
     for(let i=0;i<k;i++){const c=r.coords.slice(idx[i],idx[i+1]+1);let d=0;for(let j=1;j<c.length;j++)d+=map.distance(c[j-1],c[j]);S.push({c,d})}
   }
   closeModal();map.closePopup();clearDraft();
-  ed={r,pts:P,segs:S};mode='edit';bar();draw();drawEdit();
+  const T=(r.stops&&r.stops.length===P.length)?r.stops.map(x=>({...x})):P.map((_,i)=>({name:'Punto '+(i+1),type:'libre',hasta:''}));ed={r,pts:P,segs:S,stops:T};mode='edit';bar();draw();drawEdit();
   map.fitBounds(L.latLngBounds(r.coords),{padding:[70,70]});
 }
 function drawEdit(){
@@ -243,10 +259,12 @@ function drawEdit(){
     const m=L.marker(p,{draggable:true,icon:L.divIcon({className:'',html:'<div class="handle"></div>',iconSize:[26,26],iconAnchor:[13,13]})}).addTo(editGroup);
     m.on('dragend',()=>movePoint(i,m.getLatLng()));
     m.on('click',()=>{
-      if(ed.pts.length<=2){m.bindPopup('Una ruta necesita al menos dos puntos.').openPopup();return}
-      const b=document.createElement('button');b.textContent='Quitar este punto';
-      b.onclick=()=>{map.closePopup();removePoint(i)};
-      m.bindPopup(b).openPopup();
+      const st=ed.stops[i]||{},box=document.createElement('div');
+      box.innerHTML='<h3>'+esc(st.name||'Punto '+(i+1))+'</h3>'+(st.hasta?'Hasta '+fmt(st.hasta):'Solo paso por aquí')+'<div class="row"></div>';
+      const b1=document.createElement('button');b1.className='sec';b1.textContent='Cambiar nombre y fecha';b1.onclick=()=>{map.closePopup();editStop(i)};
+      box.lastChild.appendChild(b1);
+      if(ed.pts.length>2){const b2=document.createElement('button');b2.textContent='Quitar este punto';b2.onclick=()=>{map.closePopup();removePoint(i)};box.lastChild.appendChild(b2)}
+      m.bindPopup(box).openPopup();
     });
   });
   const k=ed.segs.reduce((a,s)=>a+s.d,0)/1000;
@@ -263,27 +281,34 @@ async function insertPoint(i,ll){
   if(edBusy)return;edBusy=true;hint('Calculando…');
   const p=[ll.lat,ll.lng];
   const s1=await routeBetween(ed.pts[i],p),s2=await routeBetween(p,ed.pts[i+1]);
-  ed.pts.splice(i+1,0,p);ed.segs.splice(i,1,s1,s2);edBusy=false;drawEdit();
+  ed.pts.splice(i+1,0,p);ed.segs.splice(i,1,s1,s2);ed.stops.splice(i+1,0,{name:'Punto de paso',type:'libre',hasta:''});edBusy=false;drawEdit();
 }
 async function removePoint(i){
   if(edBusy)return;edBusy=true;hint('Calculando…');
-  const n=ed.pts.length;ed.pts.splice(i,1);
+  const n=ed.pts.length;ed.pts.splice(i,1);ed.stops.splice(i,1);
   if(i===0)ed.segs.splice(0,1);
   else if(i===n-1)ed.segs.splice(n-2,1);
   else{const s=await routeBetween(ed.pts[i-1],ed.pts[i]);ed.segs.splice(i-1,2,s)}
   edBusy=false;drawEdit();
 }
+function editStop(i){
+  const st=ed.stops[i];
+  modal(`<h2>Parada ${i+1}</h2><label for="sn">Nombre</label><input id="sn" value="${esc(st.name)}">
+    <label for="sh">Hasta cuándo me quedo</label><input id="sh" type="date" value="${st.hasta||''}">
+    <div class="row"><button class="sec" data-x>Cancelar</button><button id="ok">Aceptar</button></div>`,
+    ()=>{st.name=$('sn').value.trim()||st.name;st.hasta=$('sh').value;drawEdit()});
+}
 function saveEdit(){
   if(edBusy)return;
   const r=ed.r,k=ed.segs.reduce((a,s)=>a+s.d,0)/1000;
-  modal(`<h2>Guardar cambios</h2><p>${k.toFixed(1)} km</p>
+  modal(`<h2>Guardar cambios</h2><p>${k.toFixed(1)} km · ${hm(secs(ed.segs))} conduciendo</p>
     <label for="n">Nombre</label><input id="n" value="${esc(r.name)}">
     <label for="d">Día que empecé</label><input id="d" type="date" value="${r.date||''}">
     <label for="e">Día que terminé</label><input id="e" type="date" value="${r.end||r.date||''}">
     <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
     ()=>{
       const ini=$('d').value;let fin=$('e').value||ini;if(fin<ini)fin=ini;
-      Object.assign(r,{name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,km:k,pts:ed.pts,segs:ed.segs,coords:ed.segs.flatMap(s=>s.c)});
+      Object.assign(r,{name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,km:k,pts:ed.pts,segs:ed.segs,stops:ed.stops,t:secs(ed.segs),coords:ed.segs.flatMap(s=>s.c)});
       if(!save())return false;
       mode=null;clearEdit();hint('');bar();draw();
     });
@@ -326,17 +351,42 @@ const col=(r,i)=>r.color||colors[i%colors.length];
 const rango=r=>{const f=r.end||r.date;return f&&f!==r.date?fmt(r.date)+' → '+fmt(f):fmt(r.date)};
 function legend(){
   const L_=$('legend'),S=$('sum');
-  if(!data.routes.length){L_.style.display='none';S.style.display='none';return}
-  const min=L_.classList.contains('min');
-  L_.style.display='block';
-  L_.innerHTML='<h4 id="lgh">Mis rutas <span>'+(min?'▼':'▲')+'</span></h4>'+data.routes.map((r,i)=>`<div class="lg" data-r="${r.id}"><i style="background:${col(r,i)}"></i><div><b>${esc(r.name)}</b><small>${rango(r)}</small><small>${r.km.toFixed(1)} km</small></div><button data-edit="${r.id}">Editar</button></div>`).join('');
-  $('lgh').onclick=()=>{L_.classList.toggle('min');legend()};
-  L_.querySelectorAll('.lg').forEach(el=>el.onclick=ev=>{if(ev.target.closest('[data-edit]'))return;const r=data.routes.find(x=>x.id==el.dataset.r);map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]})});
+  $('tr').hidden=!data.routes.length;L_.hidden=!data.routes.length;
+  if(!data.routes.length){S.style.display='none';return}
+  L_.innerHTML='<h4>Mis rutas</h4>'+data.routes.map((r,i)=>`<div class="lg" data-r="${r.id}"><i style="background:${col(r,i)}"></i><div><b>${esc(r.name)}</b></div><button data-edit="${r.id}">Editar</button></div>`).join('');
+  L_.querySelectorAll('.lg').forEach(el=>el.onclick=ev=>{if(ev.target.closest('[data-edit]'))return;const r=data.routes.find(x=>x.id==el.dataset.r);selId=r.id;drawSel();map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]});openRoute(r)});
   const ini=data.routes.map(r=>r.date).filter(Boolean).sort()[0];
   const fin=data.routes.map(r=>r.end||r.date).filter(Boolean).sort().pop();
-  const tot=data.routes.reduce((a,r)=>a+r.km,0);
+  const tot=data.routes.reduce((a,r)=>a+r.km,0),tt=data.routes.reduce((a,r)=>a+(r.t||0),0);
   S.style.display='flex';
-  S.innerHTML=`<span>Empecé el <b>${fmt(ini)||'—'}</b></span><span>Terminé el <b>${fmt(fin)||'—'}</b></span><span>Total: <b>${tot.toFixed(1)} km</b></span>`;
+  S.innerHTML=`<span>Empecé el <b>${fmt(ini)||'—'}</b></span><span>Terminé el <b>${fmt(fin)||'—'}</b></span><span>Total: <b>${tot.toFixed(1)} km</b></span>${tt?`<span>Conduciendo: <b>${hm(tt)}</b></span>`:''}`;
+}
+
+// Ventana de la ruta: cronología con paradas y tiempos
+function openRoute(r){
+  const color=r.color||colors[data.routes.indexOf(r)%colors.length];
+  const n=(r.pts||[]).length,stops=r.stops||[];let tl='';
+  if(n){
+    for(let i=0;i<n;i++){
+      const s=stops[i]||{name:'Punto '+(i+1),hasta:''};
+      tl+=`<div class="tl-stop"><span class="tl-dot" style="border-color:${color}">${i+1}</span><div><b>${esc(s.name)}</b><small>${s.hasta?'Se queda hasta el '+fmt(s.hasta):(i===n-1?'Fin de la ruta':'Solo paso por aquí')}</small></div></div>`;
+      const g=r.segs&&r.segs[i];
+      if(g)tl+=`<div class="tl-leg" style="border-color:${color}">🚐 ${g.d<10000?(g.d/1000).toFixed(1):(g.d/1000).toFixed(0)} km · ${hm(g.t??g.d/22)}</div>`;
+    }
+  }else tl='<p class="empty">Esta ruta es antigua y no tiene paradas guardadas. Pulsa «Editar ruta» para añadirlas.</p>';
+  modal(`<h2><span class="sw" style="background:${color}"></span>${esc(r.name)}</h2>
+    <p class="tl-sum"><b>${rango(r)}</b><br>${r.km.toFixed(1)} km${r.t?' · '+hm(r.t)+' conduciendo':''}</p>
+    <div class="tl">${tl}</div>
+    <div class="row"><button class="sec" data-x>Cerrar</button><button data-edit="${r.id}">Editar ruta</button></div>`);
+}
+
+// Paradas de la ruta seleccionada
+const selGroup=L.layerGroup().addTo(map);
+function drawSel(){
+  selGroup.clearLayers();const r=data.routes.find(x=>x.id==selId);if(!r||!r.pts)return;
+  r.pts.forEach((p,i)=>{const s=(r.stops||[])[i]||{};
+    L.marker(p,{icon:L.divIcon({className:'',html:'<div class="dot">'+(i+1)+'</div>',iconSize:[24,24],iconAnchor:[12,12]})}).addTo(selGroup)
+      .bindPopup('<h3>'+esc(s.name||'Punto '+(i+1))+'</h3>'+(s.hasta?'Hasta '+fmt(s.hasta):'Solo paso por aquí'))});
 }
 
 // Dibujar lo guardado
@@ -347,17 +397,19 @@ function draw(){
   data.routes.forEach((r,i)=>{
     if(ed&&ed.r===r)return;
     L.polyline(r.coords,{color:col(r,i),weight:5,opacity:.9}).addTo(saved)
-      .bindPopup(`<h3>${esc(r.name)}</h3>${rango(r)} · ${r.km.toFixed(1)} km<div class="row"><button data-edit="${r.id}">Editar ruta</button></div>`);
+      .bindPopup(`<h3>${esc(r.name)}</h3>${rango(r)} · ${r.km.toFixed(1)} km${r.t?' · '+hm(r.t):''}<div class="row"><button data-edit="${r.id}">Editar ruta</button></div>`);
   });
-  legend();
+  legend();drawSel();
   data.areas.forEach(a=>{
     L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})}).addTo(saved)
-      .bindPopup(`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>`);
+      .bindPopup(()=>`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>${mode==='route'?`<div class="row"><button data-stop="u${a.id}">Añadir a la ruta</button></div>`:''}`);
   });
 }
 document.addEventListener('click',e=>{
   const eb=e.target.closest('[data-edit]');
   if(eb){startEdit(eb.dataset.edit);return}
+  const sb=e.target.closest('[data-stop]');
+  if(sb){const a=data.areas.find(x=>x.id==sb.dataset.stop.slice(1));map.closePopup();pickStop({name:a.name,type:'mia',lat:a.lat,lng:a.lng});return}
   const im=e.target.closest('.thumbs img[data-a]');
   if(im){const a=data.areas.find(x=>x.id==im.dataset.a);modal(`<div class="big"><img src="${a.photos[im.dataset.i]}" alt=""></div><div class="row"><button data-x>Cerrar</button></div>`)}
 });
@@ -365,7 +417,7 @@ document.addEventListener('click',e=>{
 // Lista
 function openList(){
   const fecha=s=>s?new Date(s).toLocaleDateString('es-ES'):'';
-  const rs=data.routes.map(r=>`<div class="item"><div class="t"><b>${esc(r.name)}</b><small>${rango(r)} · ${r.km.toFixed(1)} km</small></div><button data-v="r${r.id}">Ver</button><button class="sec" data-edit="${r.id}">Editar</button><button class="danger" data-b="r${r.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay rutas. Pulsa «Nueva ruta».</p>';
+  const rs=data.routes.map(r=>`<div class="item"><div class="t"><b>${esc(r.name)}</b><small>${rango(r)} · ${r.km.toFixed(1)} km${r.t?' · '+hm(r.t):''}</small></div><button data-v="r${r.id}">Ver</button><button class="sec" data-edit="${r.id}">Editar</button><button class="danger" data-b="r${r.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay rutas. Pulsa «Nueva ruta».</p>';
   const as=data.areas.map(a=>`<div class="item"><div class="t"><b>${esc(a.name)}</b><small>${fecha(a.date)}${a.photos.length?' · '+a.photos.length+' fotos':''}</small></div><button data-v="a${a.id}">Ver</button><button class="danger" data-b="a${a.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay áreas. Pulsa «Añadir área».</p>';
   modal(`<h2>Mis rutas</h2>${rs}<h2 style="margin-top:20px">Mis áreas</h2>${as}<div class="row"><button data-x>Cerrar</button></div>`,null,()=>{
     document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
@@ -395,11 +447,16 @@ function modal(html,onOk,onOpen){
   const f=ov.querySelector('input,textarea');if(f&&!f.type.match(/file|date/))f.focus();
 }
 
-map.on('click',e=>{if(mode==='route')addPoint(e.latlng);else if(mode==='area')openAreaForm(e.latlng)});
-$('hide').onclick=()=>$('panel').classList.add('off');
-$('tog').onclick=()=>$('panel').classList.remove('off');
-if(innerWidth<560)$('panel').classList.add('off');
-draw();bar();
+map.on('click',e=>{if(mode==='route')pickStop({name:'Parada '+(pts.length+1),type:'libre',lat:e.latlng.lat,lng:e.latlng.lng});else if(mode==='area')openAreaForm(e.latlng)});
+function syncTabs(){
+  const pm=!$('panel').classList.contains('off'),pr=!$('legend').classList.contains('off');
+  $('tm').textContent='☰ Menú '+(pm?'▾':'▸');$('tr').textContent='Mis rutas '+(pr?'▾':'▸');
+  $('tm').setAttribute('aria-expanded',pm);$('tr').setAttribute('aria-expanded',pr);
+}
+$('tm').onclick=()=>{$('panel').classList.toggle('off');syncTabs()};
+$('tr').onclick=()=>{$('legend').classList.toggle('off');syncTabs()};
+if(innerWidth<560){$('panel').classList.add('off');$('legend').classList.add('off')}
+draw();bar();syncTabs();
 if(data.routes.length||data.areas.length){
   const b=L.featureGroup(saved.getLayers());if(b.getBounds().isValid())map.fitBounds(b.getBounds(),{padding:[40,40]});
 }
