@@ -76,18 +76,54 @@ button.danger{background:#fbe9e7;color:var(--warn)}
 .tl-leg{margin:2px 0 2px 13px;padding:8px 0 8px 24px;border-left:4px solid;font-weight:700;font-size:.95rem}
 .tl-sum{margin:0 0 10px;color:#536b68}.tl-sum b{color:var(--ink)}
 .sw{display:inline-block;width:28px;height:8px;border-radius:4px;margin-right:10px;vertical-align:middle}
+body{font-size:15px}
+input,textarea{padding:8px 10px}
+button{min-height:42px;padding:0 14px}
+.card{padding:16px}.card h2{font-size:1.1rem;margin-bottom:8px}.card label{margin:9px 0 3px}
+.card label.chk{display:flex;gap:10px;align-items:center;font-weight:400;margin-top:14px}
+.chk input{width:20px;height:20px;flex:none;padding:0}
+#tabs button{min-height:34px;font-size:13.5px;padding:0 8px}
+#bar button{min-height:32px;font-size:13.5px;padding:0 10px}
+#search input{padding:5px 8px;font-size:13.5px}#search button{min-height:32px;font-size:13px;padding:0 8px}
+#side{width:215px}#panel{padding:8px}#legend{padding:2px 4px 4px}
+#legend h4{font-size:.9rem;padding:6px 6px 4px}
+.lg{padding:5px 6px;align-items:center}.lg i{margin-top:0;width:24px}#legend .lg b{font-size:.92rem}
+.lg button{min-height:26px;font-size:.78rem;padding:0 8px}
+.lg input.vis{flex:none;width:17px;height:17px;padding:0;margin:0}
+#sum{font-size:13px;padding:3px 10px}
+#hint{font-size:13.5px;padding:7px 12px}
+.leaflet-popup-content{font-size:14px;margin:10px 12px}.leaflet-popup-content h3{font-size:1rem}
+.item{padding:7px 0}.item button{min-height:34px;font-size:.85rem}
+.tl-stop b{font-size:.98rem}.tl-leg{font-size:.88rem}
+.poi{display:inline-block;flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #fff;color:#fff;font:700 13px/20px sans-serif;text-align:center;box-shadow:0 1px 4px #0008}
+.poi.area{background:#1769d1}.poi.camping{background:#2e8b3d}
+#res{margin:0 0 8px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:2px 6px;font-size:13px}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0}.rh a{cursor:pointer;color:var(--accent);font-weight:700;white-space:nowrap}
+.ri{display:flex;gap:8px;align-items:center;padding:6px 2px;border-top:1px solid #eef2f1;cursor:pointer}.ri:hover{background:#f1f6f5}
+.ri b{display:block;line-height:1.15}.ri small{color:#536b68}
+.lg{gap:6px}.lg i{width:16px}.lg>div{flex:1 1 0;min-width:0}#legend .lg b{overflow-wrap:break-word;line-height:1.2}#side{width:235px}
+#tabs{flex-wrap:nowrap;gap:5px}#tabs button{font-size:12px;padding:0 5px;flex:1 1 auto}#side{width:258px;overflow-x:hidden}
+.yel{background:#f4b400!important;color:#16282c!important}.yel:hover{background:#d99e00!important}
+#alist{flex:none;background:var(--panel);border-radius:14px;box-shadow:0 2px 12px #0005;padding:2px 4px 4px;border-top:6px solid #f4b400}
+#alist.off{display:none}
+#alist h4{margin:0;padding:6px 6px 4px;font-size:.9rem}
+.al .pn{font-size:18px;flex:none}.al button{background:#fff0bd}.al button:hover{background:#ffe38a}
+.ph{position:relative;display:inline-block}.ph b{position:absolute;top:2px;right:2px;background:#000b;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;cursor:pointer}
+@media(max-width:560px){#side{width:226px}}
 </style>
 </head>
 <body>
 <div id="wrap">
   <div id="map"></div>
   <div id="side">
-    <div id="tabs"><button id="tm">☰ Menú ▾</button><button id="tr" hidden>Mis rutas ▾</button></div>
+    <div id="tabs"><button id="tm">☰ Menú ▾</button><button id="tr" hidden>Mis rutas ▾</button><button id="ta" class="yel" hidden>Mis áreas ▸</button></div>
     <aside id="panel">
-      <form id="search"><input id="q" placeholder="Buscar lugar" aria-label="Buscar lugar"><button>Buscar</button></form>
+      <form id="search"><input id="q" placeholder="Buscar lugar o área" aria-label="Buscar lugar o área"><button>Buscar</button></form>
+      <div id="res" hidden></div>
       <nav id="bar"></nav>
     </aside>
     <div id="legend" hidden></div>
+    <div id="alist" class="off" hidden></div>
   </div>
   <div id="hint"></div>
 </div>
@@ -113,7 +149,7 @@ L.control.zoom({position:'bottomright'}).addTo(map);
 const _fb=map.fitBounds.bind(map);
 map.fitBounds=(b,o={})=>{
   const m=o.padding?o.padding[0]:40,v=o.padding?o.padding[1]:40;
-  const menu=(!$('panel').classList.contains('off')||(data.routes.length&&!$('legend').classList.contains('off')))&&innerWidth>=560;
+  const menu=(!$('panel').classList.contains('off')||(data.routes.length&&!$('legend').classList.contains('off'))||(data.areas.length&&!$('alist').classList.contains('off')))&&innerWidth>=560;
   return _fb(b,{maxZoom:o.maxZoom,paddingTopLeft:[menu?270:m,v],paddingBottomRight:[m,v]});
 };
 const sat=L.layerGroup([
@@ -124,7 +160,7 @@ const plain=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoo
 let isSat=true;sat.addTo(map);
 
 // Barra de botones
-let mode=null,selId=null;
+let mode=null,selId=null,moveDraft=null;const areaMk={};
 function bar(){
   const b=$('bar');
   if(mode)$('panel').classList.remove('off');
@@ -135,6 +171,8 @@ function bar(){
   }else if(mode==='edit'){
     b.innerHTML='<button id="sv">Guardar cambios</button><button class="danger" id="cancel">Cancelar</button>';
     $('sv').onclick=saveEdit;$('cancel').onclick=cancelMode;
+  }else if(mode==='move'){
+    b.innerHTML='<button class="danger" id="cancel">Cancelar</button>';$('cancel').onclick=cancelMode;
   }else if(mode==='area'){
     b.innerHTML='<button class="danger" id="cancel">Cancelar</button>';$('cancel').onclick=cancelMode;
   }else{
@@ -144,17 +182,62 @@ function bar(){
 }
 function hint(t){const h=$('hint');h.style.display=t?'block':'none';h.textContent=t||''}
 function startMode(m){mode=m;bar();hint(m==='route'?'Toca el mapa para añadir cada parada de la ruta.':'Toca el mapa donde estuvo el área.')}
-function cancelMode(){mode=null;clearDraft();clearEdit();hint('');bar();draw()}
+function cancelMode(){mode=null;moveDraft=null;clearDraft();clearEdit();hint('');bar();draw()}
 function toggleLayer(){if(isSat){map.removeLayer(sat);plain.addTo(map)}else{map.removeLayer(plain);sat.addTo(map)}isSat=!isSat;bar()}
 
 // Buscar
+// Buscador: lugares y áreas de autocaravana / campings (OpenStreetMap, solo al buscar)
+const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+let ovI=0;
+async function overpass(q){
+  let motivo='sin conexión';
+  for(let k=0;k<OVP.length;k++){
+    const i=(ovI+k)%OVP.length;
+    try{
+      const r=await fetch(OVP[i],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+      if(!r.ok){motivo='el servidor respondió '+r.status;continue}
+      const t=await r.text();if(t.trim()[0]!=='{'){motivo='respuesta no válida';continue}
+      const j=JSON.parse(t);if(j.remark&&!j.elements.length){motivo='el servidor está saturado';continue}
+      ovI=i;return j;
+    }catch(e){motivo='no se pudo conectar'}
+  }
+  throw new Error(motivo);
+}
+const found=L.layerGroup().addTo(map),foundInfo={},foundMk={};
+function foundHtml(id,t,info){
+  const sv=[];if(t.drinking_water==='yes')sv.push('💧 agua');if(t.sanitary_dump_station==='yes')sv.push('🚽 vaciado');if(t.power_supply==='yes')sv.push('🔌 electricidad');
+  const web=t.website||t['contact:website']||'';
+  return `<h3>${esc(info.name)}</h3>${info.type==='camping'?'Camping':'Área de autocaravanas'}`+(t.fee==='yes'?' · de pago':t.fee==='no'?' · gratis':'')+(sv.length?'<br>'+sv.join(' · '):'')+(t.phone?'<br>📞 '+esc(t.phone):'')+(/^https?:/.test(web)?`<br><a href="${esc(web)}" target="_blank" rel="noopener">Página web</a>`:'')+
+    `<div class="row">${mode==='route'?`<button data-stop="f${id}">Añadir a la ruta</button>`:''}<button class="sec" data-save="f${id}">Guardar en mis áreas</button></div>`;
+}
 $('search').onsubmit=async e=>{
-  e.preventDefault();const q=$('q').value.trim();if(!q)return;
+  e.preventDefault();const q0=$('q').value.trim();if(!q0)return;
+  const res=$('res');res.hidden=false;found.clearLayers();
+  const cab=t=>`<div class="rh"><b>${t}</b><a data-close>✕ Cerrar</a></div>`;
+  res.innerHTML=cab('Buscando…');
+  const q=q0.replace(/\b(áreas?|areas?|autocaravanas?|caravanas?|campings?|camper)\b/gi,'').replace(/\s+/g,' ').trim()||q0;
+  let pl;
+  try{pl=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q='+encodeURIComponent(q))).json()}
+  catch(err){res.innerHTML=cab('No se pudo buscar. Comprueba tu conexión.');return}
+  if(!pl.length){res.innerHTML=cab('No encuentro ese lugar. Prueba con otro nombre.');return}
+  const ll=[+pl[0].lat,+pl[0].lon],lugar=pl[0].display_name.split(',')[0];
+  map.setView(ll,12);res.innerHTML=cab('Buscando áreas cerca de '+esc(lugar)+'…');
   try{
-    const r=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q))).json();
-    if(!r.length){alert('No encuentro ese lugar. Prueba con otro nombre.');return}
-    map.setView([+r[0].lat,+r[0].lon],13);
-  }catch(err){alert('No se pudo buscar. Comprueba que tienes internet.')}
+    const j=await overpass(`[out:json][timeout:25];(nwr["tourism"="caravan_site"](around:25000,${ll[0]},${ll[1]});nwr["tourism"="camp_site"](around:25000,${ll[0]},${ll[1]}););out center tags 80;`);
+    const L2=[];
+    j.elements.forEach(el=>{
+      const la=el.lat??el.center?.lat,lo=el.lon??el.center?.lon;if(la==null)return;
+      const t=el.tags||{},type=t.tourism==='camp_site'?'camping':'area',id=el.type[0]+el.id;
+      const info={name:t.name||(type==='camping'?'Camping sin nombre':'Área sin nombre'),type,lat:la,lng:lo,dist:map.distance(ll,[la,lo])};
+      foundInfo['f'+id]=info;
+      foundMk['f'+id]=L.marker([la,lo],{icon:L.divIcon({className:'',html:`<div class="poi ${type}">${type==='camping'?'C':'A'}</div>`,iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]})}).bindPopup(()=>foundHtml(id,t,info)).addTo(found);
+      L2.push(['f'+id,info]);
+    });
+    L2.sort((a,b)=>a[1].dist-b[1].dist);
+    if(!L2.length){res.innerHTML=cab('No hay áreas ni campings cerca de '+esc(lugar));return}
+    map.setView(ll,11);
+    res.innerHTML=cab(L2.length+' sitios cerca de '+esc(lugar))+L2.slice(0,40).map(([k,i])=>`<div class="ri" data-go="${k}"><span class="poi ${i.type}">${i.type==='camping'?'C':'A'}</span><div><b>${esc(i.name)}</b><small>${i.type==='camping'?'Camping':'Área de autocaravanas'} · ${(i.dist/1000).toFixed(1).replace('.',',')} km</small></div></div>`).join('');
+  }catch(err){res.innerHTML=cab('He ido a '+esc(lugar)+', pero no he podido cargar las áreas ('+esc(err.message)+').')}
 };
 
 // Crear ruta
@@ -192,10 +275,11 @@ function finishRoute(){
     <label for="n">Nombre</label><input id="n" value="Ruta del ${hoy.toLocaleDateString('es-ES')}">
     <label for="d">Día que empecé</label><input id="d" type="date" value="${d0}">
     <label for="e">Día que terminé</label><input id="e" type="date" value="${d1}">
+    <label class="chk"><input id="hid" type="checkbox"> Esconder esta ruta del mapa</label>
     <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
     ()=>{
       let ini=$('d').value,fin=$('e').value||ini;if(fin<ini)fin=ini;
-      data.routes.push({id:Date.now(),name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,color:colors[data.routes.length%colors.length],km:km(),pts:pts.slice(),segs:segs.slice(),stops:stops.slice(),t:secs(segs),coords:segs.flatMap(s=>s.c)});
+      data.routes.push({id:Date.now(),name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,hidden:$('hid').checked,color:colors[data.routes.length%colors.length],km:km(),pts:pts.slice(),segs:segs.slice(),stops:stops.slice(),t:secs(segs),coords:segs.flatMap(s=>s.c)});
       if(!save())return false;mode=null;clearDraft();hint('');bar();draw();
     });
 }
@@ -305,10 +389,11 @@ function saveEdit(){
     <label for="n">Nombre</label><input id="n" value="${esc(r.name)}">
     <label for="d">Día que empecé</label><input id="d" type="date" value="${r.date||''}">
     <label for="e">Día que terminé</label><input id="e" type="date" value="${r.end||r.date||''}">
+    <label class="chk"><input id="hid" type="checkbox" ${r.hidden?'checked':''}> Esconder esta ruta del mapa</label>
     <div class="row"><button class="sec" data-x>Seguir editando</button><button id="ok">Guardar</button></div>`,
     ()=>{
       const ini=$('d').value;let fin=$('e').value||ini;if(fin<ini)fin=ini;
-      Object.assign(r,{name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,km:k,pts:ed.pts,segs:ed.segs,stops:ed.stops,t:secs(ed.segs),coords:ed.segs.flatMap(s=>s.c)});
+      Object.assign(r,{name:$('n').value.trim()||'Ruta sin nombre',date:ini,end:fin,hidden:$('hid').checked,km:k,pts:ed.pts,segs:ed.segs,stops:ed.stops,t:secs(ed.segs),coords:ed.segs.flatMap(s=>s.c)});
       if(!save())return false;
       mode=null;clearEdit();hint('');bar();draw();
     });
@@ -353,8 +438,9 @@ function legend(){
   const L_=$('legend'),S=$('sum');
   $('tr').hidden=!data.routes.length;L_.hidden=!data.routes.length;
   if(!data.routes.length){S.style.display='none';return}
-  L_.innerHTML='<h4>Mis rutas</h4>'+data.routes.map((r,i)=>`<div class="lg" data-r="${r.id}"><i style="background:${col(r,i)}"></i><div><b>${esc(r.name)}</b></div><button data-edit="${r.id}">Editar</button></div>`).join('');
-  L_.querySelectorAll('.lg').forEach(el=>el.onclick=ev=>{if(ev.target.closest('[data-edit]'))return;const r=data.routes.find(x=>x.id==el.dataset.r);selId=r.id;drawSel();map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]});openRoute(r)});
+  L_.innerHTML='<h4>Mis rutas</h4>'+data.routes.map((r,i)=>`<div class="lg" data-r="${r.id}"><input type="checkbox" class="vis" data-vis="${r.id}" ${r.hidden?'':'checked'} title="Mostrar en el mapa" aria-label="Mostrar en el mapa"><i style="background:${col(r,i)}"></i><div><b>${esc(r.name)}</b></div><button data-edit="${r.id}">Editar</button></div>`).join('');
+  L_.querySelectorAll('.lg').forEach(el=>el.onclick=ev=>{if(ev.target.closest('[data-edit],[data-vis]'))return;const r=data.routes.find(x=>x.id==el.dataset.r);selId=r.id;drawSel();map.fitBounds(L.latLngBounds(r.coords),{padding:[40,40]});openRoute(r)});
+  L_.querySelectorAll('[data-vis]').forEach(c=>c.onchange=()=>{const r=data.routes.find(x=>x.id==c.dataset.vis);r.hidden=!c.checked;save();draw()});
   const ini=data.routes.map(r=>r.date).filter(Boolean).sort()[0];
   const fin=data.routes.map(r=>r.end||r.date).filter(Boolean).sort().pop();
   const tot=data.routes.reduce((a,r)=>a+r.km,0),tt=data.routes.reduce((a,r)=>a+(r.t||0),0);
@@ -380,6 +466,45 @@ function openRoute(r){
     <div class="row"><button class="sec" data-x>Cerrar</button><button data-edit="${r.id}">Editar ruta</button></div>`);
 }
 
+// Menú de áreas (amarillo) y edición de áreas
+function areasList(){
+  const el=$('alist');$('ta').hidden=el.hidden=!data.areas.length;
+  if(!data.areas.length)return;
+  el.innerHTML='<h4>Mis áreas</h4>'+data.areas.map(a=>`<div class="lg al" data-a2="${a.id}"><span class="pn">🚐</span><div><b>${esc(a.name)}</b><small>${a.date?fmt(a.date):''}${a.photos.length?' · '+a.photos.length+' fotos':''}</small></div><button data-editarea="${a.id}">Editar</button></div>`).join('');
+  el.querySelectorAll('[data-a2]').forEach(x=>x.onclick=ev=>{
+    if(ev.target.closest('[data-editarea]'))return;
+    const a=data.areas.find(y=>y.id==x.dataset.a2);
+    if(innerWidth<560){el.classList.add('off');syncTabs()}
+    map.setView([a.lat,a.lng],15);areaMk[a.id]&&areaMk[a.id].openPopup();
+  });
+}
+function editArea(id){
+  const a=data.areas.find(x=>x.id==id);if(!a)return;
+  map.closePopup();let photos=a.photos.slice();
+  const campos=()=>({name:$('n').value.trim()||a.name,date:$('d').value,notes:$('t').value.trim(),photos});
+  modal(`<h2>Editar área</h2>
+    <label for="n">Nombre</label><input id="n" value="${esc(a.name)}">
+    <label for="d">Fecha</label><input id="d" type="date" value="${a.date||''}">
+    <label for="t">Notas</label><textarea id="t" rows="3">${esc(a.notes)}</textarea>
+    <label>Fotos</label><div class="thumbs" id="th"></div>
+    <label for="f">Añadir fotos</label><input id="f" type="file" accept="image/*" multiple>
+    <div class="row"><button class="sec" id="mv">Cambiar posición</button><button class="danger" id="del">Borrar área</button></div>
+    <div class="row"><button class="sec" data-x>Cancelar</button><button id="ok">Guardar cambios</button></div>`,
+    ()=>{const old={...a};Object.assign(a,campos());if(!save()){Object.assign(a,old);return false}draw()},
+    ()=>{
+      const paint=()=>{$('th').innerHTML=photos.map((p,i)=>`<span class="ph"><img src="${p}" alt=""><b data-rm="${i}">×</b></span>`).join('');
+        $('th').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{photos.splice(+b.dataset.rm,1);paint()})};
+      paint();
+      $('f').onchange=async e=>{for(const f of e.target.files){try{photos.push(await shrink(f))}catch(err){}}paint()};
+      $('mv').onclick=()=>{moveDraft={id:a.id,f:campos()};closeModal();mode='move';bar();hint('Toca el mapa donde quieres colocar «'+a.name+'».')};
+      $('del').onclick=()=>{if(!confirm('¿Seguro que quieres borrar esta área?'))return;data.areas=data.areas.filter(x=>x.id!=a.id);save();closeModal();draw()};
+    });
+}
+function applyMove(ll){
+  const d=moveDraft;if(!d)return;const a=data.areas.find(x=>x.id==d.id);
+  Object.assign(a,d.f,{lat:ll.lat,lng:ll.lng});moveDraft=null;mode=null;hint('');bar();save();draw();editArea(a.id);
+}
+
 // Paradas de la ruta seleccionada
 const selGroup=L.layerGroup().addTo(map);
 function drawSel(){
@@ -395,21 +520,28 @@ const colors=['#ff7a1a','#e63946','#ffd60a','#4cc9f0','#b5179e','#80ed99'];
 function draw(){
   saved.clearLayers();
   data.routes.forEach((r,i)=>{
-    if(ed&&ed.r===r)return;
+    if(ed&&ed.r===r||r.hidden)return;
     L.polyline(r.coords,{color:col(r,i),weight:5,opacity:.9}).addTo(saved)
       .bindPopup(`<h3>${esc(r.name)}</h3>${rango(r)} · ${r.km.toFixed(1)} km${r.t?' · '+hm(r.t):''}<div class="row"><button data-edit="${r.id}">Editar ruta</button></div>`);
   });
-  legend();drawSel();
+  legend();drawSel();areasList();
   data.areas.forEach(a=>{
-    L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})}).addTo(saved)
-      .bindPopup(()=>`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>${mode==='route'?`<div class="row"><button data-stop="u${a.id}">Añadir a la ruta</button></div>`:''}`);
+    areaMk[a.id]=L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})}).addTo(saved)
+      .bindPopup(()=>`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>${mode==='route'?`<div class="row"><button data-stop="u${a.id}">Añadir a la ruta</button></div>`:''}<div class="row"><button class="sec" data-editarea="${a.id}">Editar área</button></div>`);
   });
 }
 document.addEventListener('click',e=>{
   const eb=e.target.closest('[data-edit]');
+  const ea=e.target.closest('[data-editarea]');
+  if(ea){editArea(ea.dataset.editarea);return}
   if(eb){startEdit(eb.dataset.edit);return}
   const sb=e.target.closest('[data-stop]');
-  if(sb){const a=data.areas.find(x=>x.id==sb.dataset.stop.slice(1));map.closePopup();pickStop({name:a.name,type:'mia',lat:a.lat,lng:a.lng});return}
+  if(sb){const k=sb.dataset.stop;let a=foundInfo[k];if(!a){const x=data.areas.find(y=>y.id==k.slice(1));a={name:x.name,type:'mia',lat:x.lat,lng:x.lng}}map.closePopup();pickStop(a);return}
+  const sv=e.target.closest('[data-save]');
+  if(sv){const i=foundInfo[sv.dataset.save];map.closePopup();openAreaForm({lat:i.lat,lng:i.lng},i.name);return}
+  if(e.target.closest('[data-close]')){$('res').hidden=true;found.clearLayers();return}
+  const gg=e.target.closest('[data-go]');
+  if(gg){const i=foundInfo[gg.dataset.go];if(innerWidth<560){$('panel').classList.add('off');syncTabs()}map.setView([i.lat,i.lng],16);foundMk[gg.dataset.go].openPopup();return}
   const im=e.target.closest('.thumbs img[data-a]');
   if(im){const a=data.areas.find(x=>x.id==im.dataset.a);modal(`<div class="big"><img src="${a.photos[im.dataset.i]}" alt=""></div><div class="row"><button data-x>Cerrar</button></div>`)}
 });
@@ -418,7 +550,7 @@ document.addEventListener('click',e=>{
 function openList(){
   const fecha=s=>s?new Date(s).toLocaleDateString('es-ES'):'';
   const rs=data.routes.map(r=>`<div class="item"><div class="t"><b>${esc(r.name)}</b><small>${rango(r)} · ${r.km.toFixed(1)} km${r.t?' · '+hm(r.t):''}</small></div><button data-v="r${r.id}">Ver</button><button class="sec" data-edit="${r.id}">Editar</button><button class="danger" data-b="r${r.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay rutas. Pulsa «Nueva ruta».</p>';
-  const as=data.areas.map(a=>`<div class="item"><div class="t"><b>${esc(a.name)}</b><small>${fecha(a.date)}${a.photos.length?' · '+a.photos.length+' fotos':''}</small></div><button data-v="a${a.id}">Ver</button><button class="danger" data-b="a${a.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay áreas. Pulsa «Añadir área».</p>';
+  const as=data.areas.map(a=>`<div class="item"><div class="t"><b>${esc(a.name)}</b><small>${fecha(a.date)}${a.photos.length?' · '+a.photos.length+' fotos':''}</small></div><button data-v="a${a.id}">Ver</button><button class="sec" data-editarea="${a.id}">Editar</button><button class="danger" data-b="a${a.id}">Borrar</button></div>`).join('')||'<p class="empty">Todavía no hay áreas. Pulsa «Añadir área».</p>';
   modal(`<h2>Mis rutas</h2>${rs}<h2 style="margin-top:20px">Mis áreas</h2>${as}<div class="row"><button data-x>Cerrar</button></div>`,null,()=>{
     document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
       const k=b.dataset.v,id=k.slice(1);closeModal();
@@ -447,14 +579,16 @@ function modal(html,onOk,onOpen){
   const f=ov.querySelector('input,textarea');if(f&&!f.type.match(/file|date/))f.focus();
 }
 
-map.on('click',e=>{if(mode==='route')pickStop({name:'Parada '+(pts.length+1),type:'libre',lat:e.latlng.lat,lng:e.latlng.lng});else if(mode==='area')openAreaForm(e.latlng)});
+map.on('click',e=>{if(mode==='route')pickStop({name:'Parada '+(pts.length+1),type:'libre',lat:e.latlng.lat,lng:e.latlng.lng});else if(mode==='area')openAreaForm(e.latlng);else if(mode==='move')applyMove(e.latlng)});
 function syncTabs(){
   const pm=!$('panel').classList.contains('off'),pr=!$('legend').classList.contains('off');
   $('tm').textContent='☰ Menú '+(pm?'▾':'▸');$('tr').textContent='Mis rutas '+(pr?'▾':'▸');
+  $('ta').textContent='Mis áreas '+(!$('alist').classList.contains('off')?'▾':'▸');
   $('tm').setAttribute('aria-expanded',pm);$('tr').setAttribute('aria-expanded',pr);
 }
 $('tm').onclick=()=>{$('panel').classList.toggle('off');syncTabs()};
 $('tr').onclick=()=>{$('legend').classList.toggle('off');syncTabs()};
+$('ta').onclick=()=>{$('alist').classList.toggle('off');syncTabs()};
 if(innerWidth<560){$('panel').classList.add('off');$('legend').classList.add('off')}
 draw();bar();syncTabs();
 if(data.routes.length||data.areas.length){
