@@ -21,7 +21,7 @@ button.danger{background:#fbe9e7;color:var(--warn)}
 #wrap{position:relative;flex:1;min-height:0}
 #map{position:absolute;inset:0}
 #bar button.on{background:var(--route);color:#16282c}
-.pin{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px #0007)}
+.pin{font-size:15px;line-height:1;filter:drop-shadow(0 2px 2px #0007)}
 .dot{width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--route)}
 .overlay{position:fixed;inset:0;background:#000a;z-index:2000;display:flex;align-items:center;justify-content:center;padding:12px}
 .card{background:var(--panel);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:92vh;overflow:auto}
@@ -95,7 +95,7 @@ button{min-height:42px;padding:0 14px}
 .leaflet-popup-content{font-size:14px;margin:10px 12px}.leaflet-popup-content h3{font-size:1rem}
 .item{padding:7px 0}.item button{min-height:34px;font-size:.85rem}
 .tl-stop b{font-size:.98rem}.tl-leg{font-size:.88rem}
-.poi{display:inline-block;flex:none;width:24px;height:24px;border-radius:50%;border:2px solid #fff;color:#fff;font:700 13px/20px sans-serif;text-align:center;box-shadow:0 1px 4px #0008}
+.poi{display:inline-block;flex:none;width:18px;height:18px;border-radius:50%;border:2px solid #fff;color:#fff;font:700 10px/14px sans-serif;text-align:center;box-shadow:0 1px 4px #0008}
 .poi.area{background:#1769d1}.poi.camping{background:#2e8b3d}
 #res{margin:0 0 8px;max-height:230px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:2px 6px;font-size:13px}
 .rh{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0}.rh a{cursor:pointer;color:var(--accent);font-weight:700;white-space:nowrap}
@@ -109,6 +109,8 @@ button{min-height:42px;padding:0 14px}
 #alist h4{margin:0;padding:6px 6px 4px;font-size:.9rem}
 .al .pn{font-size:18px;flex:none}.al button{background:#fff0bd}.al button:hover{background:#ffe38a}
 .ph{position:relative;display:inline-block}.ph b{position:absolute;top:2px;right:2px;background:#000b;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;cursor:pointer}
+.rec{margin:10px 0 4px;padding:8px 10px;background:#fff6d6;border-radius:10px;font-size:.88rem;line-height:1.5}
+.rec .tot{margin-top:4px;padding-top:4px;border-top:1px solid #e8d48a;font-size:.95rem}
 @media(max-width:560px){#side{width:226px}}
 </style>
 </head>
@@ -141,6 +143,14 @@ const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const $=id=>document.getElementById(id);
 const hm=s=>{const m=Math.round(s/60);return m<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min'};
 const secs=a=>a.reduce((x,s)=>x+(s.t??s.d/22),0);
+function eur(n){return n.toLocaleString('es-ES',{maximumFractionDigits:2})+' €'}
+function coste(st){return st.reduce((a,s)=>a+(s.precio||0)*(s.noches||0),0)}
+function nnoches(st){return st.reduce((a,s)=>a+(s.noches||0),0)}
+function recuento(st){
+  const l=st.filter(s=>s.noches>0);
+  if(!l.length)return '<div class="rec">No has anotado noches de alojamiento.</div>';
+  return '<div class="rec"><b>Recuento de noches</b>'+l.map(s=>`<div>${esc(s.name)}: ${s.noches} ${s.noches==1?'noche':'noches'} × ${eur(s.precio||0)} = <b>${eur((s.precio||0)*s.noches)}</b></div>`).join('')+`<div class="tot">Total: ${nnoches(st)} ${nnoches(st)==1?'noche':'noches'} · <b>${eur(coste(st))}</b></div></div>`;
+}
 
 // Mapa
 const map=L.map('map',{zoomControl:false}).setView([40.2,-3.7],6);
@@ -156,7 +166,16 @@ const sat=L.layerGroup([
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:18,attribution:'Imagery © Esri'}),
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:18})
 ]);
-const plain=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+// Mapa de carreteras: Esri (no pide permisos especiales) y, si fallara, Carto como respaldo
+let calles=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Map © Esri, HERE, Garmin, OpenStreetMap'});
+const plain=L.layerGroup([calles]);
+let tErr=0,swapped=false;
+calles.on('tileerror',()=>{
+  if(++tErr<6||swapped)return;swapped=true;
+  plain.removeLayer(calles);
+  calles=L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'© OpenStreetMap © CARTO'});
+  plain.addLayer(calles);
+});
 let isSat=true;sat.addTo(map);
 
 // Barra de botones
@@ -187,21 +206,75 @@ function toggleLayer(){if(isSat){map.removeLayer(sat);plain.addTo(map)}else{map.
 
 // Buscar
 // Buscador: lugares y áreas de autocaravana / campings (OpenStreetMap, solo al buscar)
-const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+const OVP=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://z.overpass-api.de/api/interpreter'];
 let ovI=0;
-async function overpass(q){
+async function getJson(url,ms=10000){
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw new Error('el servidor respondió '+r.status);return await r.json()}
+  finally{clearTimeout(t)}
+}
+async function overpass(q,msg){
   let motivo='sin conexión';
   for(let k=0;k<OVP.length;k++){
-    const i=(ovI+k)%OVP.length;
+    const i=(ovI+k)%OVP.length,c=new AbortController(),t=setTimeout(()=>c.abort(),12000);
+    if(k>0&&msg)msg('Probando otro servidor ('+(k+1)+' de '+OVP.length+')…');
     try{
-      const r=await fetch(OVP[i],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+      const r=await fetch(OVP[i],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q),signal:c.signal});
       if(!r.ok){motivo='el servidor respondió '+r.status;continue}
-      const t=await r.text();if(t.trim()[0]!=='{'){motivo='respuesta no válida';continue}
-      const j=JSON.parse(t);if(j.remark&&!j.elements.length){motivo='el servidor está saturado';continue}
+      const tx=await r.text();if(tx.trim()[0]!=='{'){motivo='respuesta no válida';continue}
+      const j=JSON.parse(tx);if(j.remark&&!j.elements.length){motivo='el servidor está saturado';continue}
       ovI=i;return j;
-    }catch(e){motivo='no se pudo conectar'}
+    }catch(e){motivo=e.name==='AbortError'?'el servidor tarda demasiado':'no se pudo conectar'}
+    finally{clearTimeout(t)}
   }
   throw new Error(motivo);
+}
+const normEl=(el,ll)=>{
+  const la=el.lat??el.center?.lat,lo=el.lon??el.center?.lon;if(la==null)return null;
+  const t=el.tags||{},type=t.tourism==='camp_site'?'camping':'area';
+  return{id:'f'+el.type[0]+el.id,name:t.name||(type==='camping'?'Camping sin nombre':'Área sin nombre'),type,lat:la,lng:lo,tags:t,dist:map.distance(ll,[la,lo])};
+};
+// Búsqueda por círculos: empieza cerca y se amplía solo si hay pocos resultados
+async function buscarOverpass(ll,msg){
+  let els=[],fallo=null;
+  for(const R of [8000,20000,40000]){
+    msg('Buscando áreas a '+R/1000+' km a la redonda…');
+    try{
+      const j=await overpass(`[out:json][timeout:20];(nwr["tourism"="caravan_site"](around:${R},${ll[0]},${ll[1]});nwr["tourism"="camp_site"](around:${R},${ll[0]},${ll[1]}););out center tags 80;`,msg);
+      els=j.elements;fallo=null;
+    }catch(e){fallo=e;break}
+    if(els.length>=8)break;
+  }
+  if(fallo&&!els.length)throw fallo;
+  return els.map(el=>normEl(el,ll)).filter(Boolean);
+}
+// Plan B si OpenStreetMap (Overpass) no responde: buscador Nominatim dentro de la zona
+async function buscarNominatim(ll,msg){
+  msg('Probando otro método de búsqueda…');
+  const vb=`${ll[1]-0.3},${ll[0]+0.2},${ll[1]+0.3},${ll[0]-0.2}`,seen=new Set(),out=[];
+  for(const t of ['caravan site','camp site','camping','área autocaravanas']){
+    try{
+      const r=await getJson(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&accept-language=es&bounded=1&viewbox=${vb}&q=${encodeURIComponent(t)}`);
+      r.forEach(x=>{
+        const k=x.osm_type+x.osm_id;if(seen.has(k)||x.category!=='tourism'||!['caravan_site','camp_site'].includes(x.type))return;seen.add(k);
+        const type=x.type==='camp_site'?'camping':'area';
+        out.push({id:'fn'+k,name:x.name||x.display_name.split(',')[0],type,lat:+x.lat,lng:+x.lon,tags:{},dist:map.distance(ll,[+x.lat,+x.lon])});
+      });
+    }catch(e){}
+  }
+  if(!out.length)throw new Error('sin resultados');
+  return out;
+}
+async function geocode(q){
+  try{
+    const r=await getJson('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q='+encodeURIComponent(q));
+    return r.length?{ll:[+r[0].lat,+r[0].lon],lugar:r[0].display_name.split(',')[0]}:null;
+  }catch(e){}
+  try{
+    const j=await getJson('https://photon.komoot.io/api/?limit=1&lang=es&q='+encodeURIComponent(q));
+    const f=j.features&&j.features[0];
+    return f?{ll:[f.geometry.coordinates[1],f.geometry.coordinates[0]],lugar:f.properties.name||q}:null;
+  }catch(e){throw new Error('sin conexión')}
 }
 const found=L.layerGroup().addTo(map),foundInfo={},foundMk={};
 function foundHtml(id,t,info){
@@ -211,33 +284,33 @@ function foundHtml(id,t,info){
     `<div class="row">${mode==='route'?`<button data-stop="f${id}">Añadir a la ruta</button>`:''}<button class="sec" data-save="f${id}">Guardar en mis áreas</button></div>`;
 }
 $('search').onsubmit=async e=>{
-  e.preventDefault();const q0=$('q').value.trim();if(!q0)return;
+  if(e&&e.preventDefault)e.preventDefault();
+  const q0=$('q').value.trim();if(!q0)return;
   const res=$('res');res.hidden=false;found.clearLayers();
   const cab=t=>`<div class="rh"><b>${t}</b><a data-close>✕ Cerrar</a></div>`;
-  res.innerHTML=cab('Buscando…');
+  const fallo=t=>{res.innerHTML=cab(t)+'<div class="rh"><a data-retry>↻ Reintentar</a></div>'};
+  const msg=t=>{res.innerHTML=cab(t)};
+  msg('Buscando…');
   const q=q0.replace(/\b(áreas?|areas?|autocaravanas?|caravanas?|campings?|camper)\b/gi,'').replace(/\s+/g,' ').trim()||q0;
-  let pl;
-  try{pl=await (await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q='+encodeURIComponent(q))).json()}
-  catch(err){res.innerHTML=cab('No se pudo buscar. Comprueba tu conexión.');return}
-  if(!pl.length){res.innerHTML=cab('No encuentro ese lugar. Prueba con otro nombre.');return}
-  const ll=[+pl[0].lat,+pl[0].lon],lugar=pl[0].display_name.split(',')[0];
-  map.setView(ll,12);res.innerHTML=cab('Buscando áreas cerca de '+esc(lugar)+'…');
-  try{
-    const j=await overpass(`[out:json][timeout:25];(nwr["tourism"="caravan_site"](around:25000,${ll[0]},${ll[1]});nwr["tourism"="camp_site"](around:25000,${ll[0]},${ll[1]}););out center tags 80;`);
-    const L2=[];
-    j.elements.forEach(el=>{
-      const la=el.lat??el.center?.lat,lo=el.lon??el.center?.lon;if(la==null)return;
-      const t=el.tags||{},type=t.tourism==='camp_site'?'camping':'area',id=el.type[0]+el.id;
-      const info={name:t.name||(type==='camping'?'Camping sin nombre':'Área sin nombre'),type,lat:la,lng:lo,dist:map.distance(ll,[la,lo])};
-      foundInfo['f'+id]=info;
-      foundMk['f'+id]=L.marker([la,lo],{icon:L.divIcon({className:'',html:`<div class="poi ${type}">${type==='camping'?'C':'A'}</div>`,iconSize:[24,24],iconAnchor:[12,12],popupAnchor:[0,-12]})}).bindPopup(()=>foundHtml(id,t,info)).addTo(found);
-      L2.push(['f'+id,info]);
-    });
-    L2.sort((a,b)=>a[1].dist-b[1].dist);
-    if(!L2.length){res.innerHTML=cab('No hay áreas ni campings cerca de '+esc(lugar));return}
-    map.setView(ll,11);
-    res.innerHTML=cab(L2.length+' sitios cerca de '+esc(lugar))+L2.slice(0,40).map(([k,i])=>`<div class="ri" data-go="${k}"><span class="poi ${i.type}">${i.type==='camping'?'C':'A'}</span><div><b>${esc(i.name)}</b><small>${i.type==='camping'?'Camping':'Área de autocaravanas'} · ${(i.dist/1000).toFixed(1).replace('.',',')} km</small></div></div>`).join('');
-  }catch(err){res.innerHTML=cab('He ido a '+esc(lugar)+', pero no he podido cargar las áreas ('+esc(err.message)+').')}
+  let g;
+  try{g=await geocode(q)}catch(err){fallo('No se pudo buscar el lugar. Comprueba tu conexión.');return}
+  if(!g){msg('No encuentro ese lugar. Prueba con otro nombre.');return}
+  const ll=g.ll,lugar=g.lugar;
+  map.setView(ll,12);
+  let L2;
+  try{L2=await buscarOverpass(ll,m=>msg(m))}
+  catch(e1){
+    try{L2=await buscarNominatim(ll,m=>msg(m))}
+    catch(e2){fallo('He ido a '+esc(lugar)+', pero no he podido cargar las áreas ('+esc(e1.message)+').');return}
+  }
+  L2.sort((a,b)=>a.dist-b.dist);
+  if(!L2.length){msg('No hay áreas ni campings cerca de '+esc(lugar)+'. Prueba con un pueblo o ciudad cercana.');return}
+  L2.slice(0,80).forEach(i=>{
+    foundInfo[i.id]=i;
+    foundMk[i.id]=L.marker([i.lat,i.lng],{icon:L.divIcon({className:'',html:`<div class="poi ${i.type}">${i.type==='camping'?'C':'A'}</div>`,iconSize:[18,18],iconAnchor:[9,9],popupAnchor:[0,-9]})}).bindPopup(()=>foundHtml(i.id.slice(1),i.tags,i)).addTo(found);
+  });
+  map.fitBounds(L.latLngBounds(L2.slice(0,40).map(i=>[i.lat,i.lng]).concat([ll])),{maxZoom:14,padding:[40,40]});
+  res.innerHTML=cab((L2.length==1?'1 sitio':L2.length+' sitios')+' cerca de '+esc(lugar))+L2.slice(0,40).map(i=>`<div class="ri" data-go="${i.id}"><span class="poi ${i.type}">${i.type==='camping'?'C':'A'}</span><div><b>${esc(i.name)}</b><small>${i.type==='camping'?'Camping':'Área de autocaravanas'} · ${(i.dist/1000).toFixed(1).replace('.',',')} km</small></div></div>`).join('');
 };
 
 // Crear ruta
@@ -249,19 +322,22 @@ function redraw(){
   const all=segs.flatMap(s=>s.c);
   if(all.length)L.polyline(all,{color:'#ff7a1a',weight:6,opacity:.95}).addTo(draftGroup);
   pts.forEach((p,i)=>L.marker(p,{icon:L.divIcon({className:'',html:'<div class="dot">'+(i+1)+'</div>',iconSize:[24,24],iconAnchor:[12,12]}),interactive:false}).addTo(draftGroup));
-  hint(pts.length<2?'Toca el mapa para añadir la siguiente parada.':'Llevas '+km().toFixed(1)+' km · '+hm(secs(segs))+'. Sigue añadiendo paradas o pulsa «Terminar ruta».');
+  hint(pts.length<2?'Toca el mapa para añadir la siguiente parada.':'Llevas '+km().toFixed(1)+' km · '+hm(secs(segs))+(coste(stops)?' · '+eur(coste(stops)):'')+'. Sigue añadiendo paradas o pulsa «Terminar ruta».');
 }
 function pickStop(info){
   const last=[...stops].reverse().find(s=>s.hasta)?.hasta||new Date().toISOString().slice(0,10);
-  const go=h=>addPoint({...info,name:$('pn').value.trim()||info.name},h);
+  const go=(h,p,n)=>addPoint({...info,name:$('pn').value.trim()||info.name},h,p,n);
+  const num=id=>Math.max(0,parseFloat(String($(id).value).replace(',','.'))||0);
   modal(`<h2>Nueva parada</h2><label for="pn">Nombre</label><input id="pn" value="${esc(info.name)}">
     <label for="h">¿Hasta cuándo te quedas aquí?</label><input id="h" type="date" value="${last}">
+    <label for="pr">Precio de una noche (€)</label><input id="pr" type="text" inputmode="decimal" placeholder="Ej. 12 o 12,50">
+    <label for="nn">Número de noches que me quedo</label><input id="nn" type="number" min="0" step="1" inputmode="numeric" value="1">
     <div class="row" style="flex-direction:column"><button id="ok">Aceptar</button><button class="sec" id="np">Solo paso por aquí</button><button class="sec" data-x>Cancelar</button></div>`,
-    ()=>go($('h').value),()=>{$('np').onclick=()=>{go('');closeModal()}});
+    ()=>go($('h').value,num('pr'),Math.round(num('nn'))),()=>{$('np').onclick=()=>{go('',0,0);closeModal()}});
 }
-async function addPoint(info,hasta){
+async function addPoint(info,hasta,precio,noches){
   if(busy)return;
-  const p=[info.lat,info.lng],st={name:info.name,type:info.type,hasta:hasta||''};
+  const p=[info.lat,info.lng],st={name:info.name,type:info.type,hasta:hasta||'',precio:precio||0,noches:noches||0};
   if(!pts.length){pts.push(p);stops.push(st);redraw();return}
   busy=true;hint('Calculando…');
   const seg=await routeBetween(pts[pts.length-1],p);
@@ -271,7 +347,7 @@ function undoPoint(){if(pts.length>1){pts.pop();segs.pop();stops.pop()}else{pts=
 function finishRoute(){
   if(segs.length<1){alert('Marca al menos dos puntos en el mapa.');return}
   const hoy=new Date();const d=hoy.toISOString().slice(0,10);const d0=stops.find(s=>s.hasta)?.hasta||d,d1=[...stops].reverse().find(s=>s.hasta)?.hasta||d0;
-  modal(`<h2>Guardar ruta</h2><p>${km().toFixed(1)} km · ${hm(secs(segs))} conduciendo<br><small>Tiempo estimado en coche; en autocaravana suele ser algo más.</small></p>
+  modal(`<h2>Guardar ruta</h2><p>${km().toFixed(1)} km · ${hm(secs(segs))} conduciendo<br><small>Tiempo estimado en coche; en autocaravana suele ser algo más.</small></p>${recuento(stops)}
     <label for="n">Nombre</label><input id="n" value="Ruta del ${hoy.toLocaleDateString('es-ES')}">
     <label for="d">Día que empecé</label><input id="d" type="date" value="${d0}">
     <label for="e">Día que terminé</label><input id="e" type="date" value="${d1}">
@@ -379,13 +455,16 @@ function editStop(i){
   const st=ed.stops[i];
   modal(`<h2>Parada ${i+1}</h2><label for="sn">Nombre</label><input id="sn" value="${esc(st.name)}">
     <label for="sh">Hasta cuándo me quedo</label><input id="sh" type="date" value="${st.hasta||''}">
+    <label for="sp">Precio de una noche (€)</label><input id="sp" type="text" inputmode="decimal" placeholder="Ej. 12 o 12,50" value="${st.precio||''}">
+    <label for="sx">Número de noches</label><input id="sx" type="number" min="0" step="1" inputmode="numeric" value="${st.noches||0}">
     <div class="row"><button class="sec" data-x>Cancelar</button><button id="ok">Aceptar</button></div>`,
-    ()=>{st.name=$('sn').value.trim()||st.name;st.hasta=$('sh').value;drawEdit()});
+    ()=>{st.name=$('sn').value.trim()||st.name;st.hasta=$('sh').value;
+      st.precio=Math.max(0,parseFloat(String($('sp').value).replace(',','.'))||0);st.noches=Math.max(0,Math.round(parseFloat($('sx').value)||0));drawEdit()});
 }
 function saveEdit(){
   if(edBusy)return;
   const r=ed.r,k=ed.segs.reduce((a,s)=>a+s.d,0)/1000;
-  modal(`<h2>Guardar cambios</h2><p>${k.toFixed(1)} km · ${hm(secs(ed.segs))} conduciendo</p>
+  modal(`<h2>Guardar cambios</h2><p>${k.toFixed(1)} km · ${hm(secs(ed.segs))} conduciendo</p>${recuento(ed.stops)}
     <label for="n">Nombre</label><input id="n" value="${esc(r.name)}">
     <label for="d">Día que empecé</label><input id="d" type="date" value="${r.date||''}">
     <label for="e">Día que terminé</label><input id="e" type="date" value="${r.end||r.date||''}">
@@ -443,9 +522,9 @@ function legend(){
   L_.querySelectorAll('[data-vis]').forEach(c=>c.onchange=()=>{const r=data.routes.find(x=>x.id==c.dataset.vis);r.hidden=!c.checked;save();draw()});
   const ini=data.routes.map(r=>r.date).filter(Boolean).sort()[0];
   const fin=data.routes.map(r=>r.end||r.date).filter(Boolean).sort().pop();
-  const tot=data.routes.reduce((a,r)=>a+r.km,0),tt=data.routes.reduce((a,r)=>a+(r.t||0),0);
+  const tot=data.routes.reduce((a,r)=>a+r.km,0),tt=data.routes.reduce((a,r)=>a+(r.t||0),0),gt=data.routes.reduce((a,r)=>a+coste(r.stops||[]),0);
   S.style.display='flex';
-  S.innerHTML=`<span>Empecé el <b>${fmt(ini)||'—'}</b></span><span>Terminé el <b>${fmt(fin)||'—'}</b></span><span>Total: <b>${tot.toFixed(1)} km</b></span>${tt?`<span>Conduciendo: <b>${hm(tt)}</b></span>`:''}`;
+  S.innerHTML=`<span>Empecé el <b>${fmt(ini)||'—'}</b></span><span>Terminé el <b>${fmt(fin)||'—'}</b></span><span>Total: <b>${tot.toFixed(1)} km</b></span>${tt?`<span>Conduciendo: <b>${hm(tt)}</b></span>`:''}${gt?`<span>Alojamiento: <b>${eur(gt)}</b></span>`:''}`;
 }
 
 // Ventana de la ruta: cronología con paradas y tiempos
@@ -455,14 +534,14 @@ function openRoute(r){
   if(n){
     for(let i=0;i<n;i++){
       const s=stops[i]||{name:'Punto '+(i+1),hasta:''};
-      tl+=`<div class="tl-stop"><span class="tl-dot" style="border-color:${color}">${i+1}</span><div><b>${esc(s.name)}</b><small>${s.hasta?'Se queda hasta el '+fmt(s.hasta):(i===n-1?'Fin de la ruta':'Solo paso por aquí')}</small></div></div>`;
+      tl+=`<div class="tl-stop"><span class="tl-dot" style="border-color:${color}">${i+1}</span><div><b>${esc(s.name)}</b><small>${s.hasta?'Se queda hasta el '+fmt(s.hasta):(i===n-1?'Fin de la ruta':'Solo paso por aquí')}</small>${s.noches?`<small>${s.noches} ${s.noches==1?'noche':'noches'} · ${eur(s.precio||0)}/noche = <b>${eur((s.precio||0)*s.noches)}</b></small>`:''}</div></div>`;
       const g=r.segs&&r.segs[i];
       if(g)tl+=`<div class="tl-leg" style="border-color:${color}">🚐 ${g.d<10000?(g.d/1000).toFixed(1):(g.d/1000).toFixed(0)} km · ${hm(g.t??g.d/22)}</div>`;
     }
   }else tl='<p class="empty">Esta ruta es antigua y no tiene paradas guardadas. Pulsa «Editar ruta» para añadirlas.</p>';
   modal(`<h2><span class="sw" style="background:${color}"></span>${esc(r.name)}</h2>
     <p class="tl-sum"><b>${rango(r)}</b><br>${r.km.toFixed(1)} km${r.t?' · '+hm(r.t)+' conduciendo':''}</p>
-    <div class="tl">${tl}</div>
+    <div class="tl">${tl}</div>${n?recuento(stops):''}
     <div class="row"><button class="sec" data-x>Cerrar</button><button data-edit="${r.id}">Editar ruta</button></div>`);
 }
 
@@ -526,7 +605,7 @@ function draw(){
   });
   legend();drawSel();areasList();
   data.areas.forEach(a=>{
-    areaMk[a.id]=L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]})}).addTo(saved)
+    areaMk[a.id]=L.marker([a.lat,a.lng],{icon:L.divIcon({className:'',html:'<div class="pin">🚐</div>',iconSize:[16,16],iconAnchor:[8,14],popupAnchor:[0,-12]})}).addTo(saved)
       .bindPopup(()=>`<h3>${esc(a.name)}</h3>${esc(a.date)}${a.notes?'<br>'+esc(a.notes):''}<div class="thumbs">${a.photos.map((p,i)=>`<img src="${p}" alt="Foto ${i+1}" data-a="${a.id}" data-i="${i}">`).join('')}</div>${mode==='route'?`<div class="row"><button data-stop="u${a.id}">Añadir a la ruta</button></div>`:''}<div class="row"><button class="sec" data-editarea="${a.id}">Editar área</button></div>`);
   });
 }
@@ -540,6 +619,7 @@ document.addEventListener('click',e=>{
   const sv=e.target.closest('[data-save]');
   if(sv){const i=foundInfo[sv.dataset.save];map.closePopup();openAreaForm({lat:i.lat,lng:i.lng},i.name);return}
   if(e.target.closest('[data-close]')){$('res').hidden=true;found.clearLayers();return}
+  if(e.target.closest('[data-retry]')){$('search').onsubmit({});return}
   const gg=e.target.closest('[data-go]');
   if(gg){const i=foundInfo[gg.dataset.go];if(innerWidth<560){$('panel').classList.add('off');syncTabs()}map.setView([i.lat,i.lng],16);foundMk[gg.dataset.go].openPopup();return}
   const im=e.target.closest('.thumbs img[data-a]');
